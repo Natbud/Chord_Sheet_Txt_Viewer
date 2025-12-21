@@ -6,7 +6,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
     background-color: #fff;
     padding: 20px;
@@ -19,10 +19,69 @@ h1 {
     margin-bottom: 20px;
 }
 
+.main-content {
+    display: flex;
+}
+
+#file-browser {
+    width: 250px;
+    border-right: 1px solid #ccc;
+    padding-right: 20px;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+#file-list ul {
+    list-style-type: none;
+    padding-left: 15px;
+}
+
+#file-list li {
+    padding: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.directory {
+    font-weight: bold;
+}
+
+.file::before {
+    content: '📄 ';
+}
+
+.file:hover {
+    background-color: #f0f0f0;
+}
+
+ul.nested {
+    display: none;
+    padding-left: 20px;
+}
+
+ul.nested.active {
+    display: block;
+}
+
+.directory::before {
+    content: '▶ 📁 ';
+    font-size: 0.8em;
+}
+
+.directory.expanded::before {
+    content: '▼ 📁 ';
+    font-size: 0.8em;
+}
+
+.editor-container {
+    flex-grow: 1;
+    padding-left: 20px;
+}
+
 .buttons {
     display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+    justify-content: flex-end;
+    margin-bottom: 10px;
 }
 
 button {
@@ -32,7 +91,6 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    margin: 0 10px;
 }
 
 button:hover {
