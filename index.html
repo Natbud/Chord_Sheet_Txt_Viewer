@@ -9,11 +9,18 @@
 <body>
     <div class="container">
         <h1>Text File Reader/Editor</h1>
-        <div class="buttons">
-            <button id="open-btn">Open File</button>
-            <button id="save-btn">Save File</button>
+        <div class="main-content">
+            <div id="file-browser">
+                <h2>Files</h2>
+                <ul id="file-list"></ul>
+            </div>
+            <div class="editor-container">
+                <div class="buttons">
+                    <button id="save-btn">Download File</button>
+                </div>
+                <textarea id="editor" placeholder="Select a file to view its content..."></textarea>
+            </div>
         </div>
-        <textarea id="editor" placeholder="File content will be displayed here..."></textarea>
     </div>
     <script src="script.js"></script>
 </body>
