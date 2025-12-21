@@ -25,18 +25,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const increaseFontSizeBtn = document.getElementById('increase-font-size-btn');
     const decreaseFontSizeBtn = document.getElementById('decrease-font-size-btn');
     const toggleFullscreenBtn = document.getElementById('toggle-fullscreen-btn');
-    const pageUpBtn = document.getElementById('page-up-btn');
-    const pageDownBtn = document.getElementById('page-down-btn');
     const backgroundColorPicker = document.getElementById('background-color-picker');
     const textColorPicker = document.getElementById('text-color-picker');
     const boldBtn = document.getElementById('bold-btn');
 
-    pageUpBtn.addEventListener('click', () => {
-        editor.scrollTop -= editor.clientHeight;
-    });
-
-    pageDownBtn.addEventListener('click', () => {
-        editor.scrollTop += editor.clientHeight;
+    editor.addEventListener('keydown', (event) => {
+        if (event.key === 'PageUp') {
+            event.preventDefault();
+            editor.scrollTop -= editor.clientHeight;
+        } else if (event.key === 'PageDown') {
+            event.preventDefault();
+            editor.scrollTop += editor.clientHeight;
+        }
     });
 
     backgroundColorPicker.addEventListener('input', () => {
