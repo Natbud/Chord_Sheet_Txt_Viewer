@@ -29,22 +29,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fontSelect.addEventListener('change', () => {
-        body.style.fontFamily = fontSelect.value;
-        localStorage.setItem('font', fontSelect.value);
+        editor.style.fontFamily = fontSelect.value;
+        localStorage.setItem('editorFont', fontSelect.value);
     });
 
     // Load settings from localStorage
     const darkMode = localStorage.getItem('darkMode') === 'true';
-    const font = localStorage.getItem('font');
+    const editorFont = localStorage.getItem('editorFont');
 
     if (darkMode) {
         body.classList.add('dark-mode');
         darkModeToggle.checked = true;
     }
 
-    if (font) {
-        body.style.fontFamily = font;
-        fontSelect.value = font;
+    // Set the body font to sans-serif by default
+    body.style.fontFamily = 'sans-serif';
+
+    if (editorFont) {
+        editor.style.fontFamily = editorFont;
+        fontSelect.value = editorFont;
     }
 
     const fileListContainer = document.getElementById('file-list');
