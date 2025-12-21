@@ -52,6 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fileListContainer = document.getElementById('file-list');
     const selectDirBtn = document.getElementById('select-dir-btn');
+    const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+    const fileBrowser = document.getElementById('file-browser');
+
+    toggleSidebarBtn.addEventListener('click', () => {
+        fileBrowser.classList.toggle('collapsed');
+    });
 
     let currentFileHandle = null;
 
