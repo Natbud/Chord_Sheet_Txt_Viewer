@@ -25,6 +25,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const increaseFontSizeBtn = document.getElementById('increase-font-size-btn');
     const decreaseFontSizeBtn = document.getElementById('decrease-font-size-btn');
     const toggleFullscreenBtn = document.getElementById('toggle-fullscreen-btn');
+    const backgroundColorPicker = document.getElementById('background-color-picker');
+    const textColorPicker = document.getElementById('text-color-picker');
+    const boldBtn = document.getElementById('bold-btn');
+
+    editor.addEventListener('keydown', (event) => {
+        if (event.key === 'PageUp') {
+            event.preventDefault();
+            editor.scrollTop -= editor.clientHeight;
+        } else if (event.key === 'PageDown') {
+            event.preventDefault();
+            editor.scrollTop += editor.clientHeight;
+        }
+    });
+
+    backgroundColorPicker.addEventListener('input', () => {
+        editor.style.backgroundColor = backgroundColorPicker.value;
+        localStorage.setItem('editorBackgroundColor', backgroundColorPicker.value);
+    });
+
+    textColorPicker.addEventListener('input', () => {
+        editor.style.color = textColorPicker.value;
+        localStorage.setItem('editorTextColor', textColorPicker.value);
+    });
+
+    boldBtn.addEventListener('click', () => {
+        const isBold = editor.style.fontWeight === 'bold';
+        editor.style.fontWeight = isBold ? 'normal' : 'bold';
+        localStorage.setItem('editorBold', !isBold);
+    });
 
     darkModeToggle.addEventListener('change', () => {
         body.classList.toggle('dark-mode');
@@ -59,6 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load settings from localStorage
     const darkMode = localStorage.getItem('darkMode') === 'true';
     const editorFont = localStorage.getItem('editorFont');
+    const editorBackgroundColor = localStorage.getItem('editorBackgroundColor');
+    const editorTextColor = localStorage.getItem('editorTextColor');
+    const editorBold = localStorage.getItem('editorBold') === 'true';
 
     if (darkMode) {
         body.classList.add('dark-mode');
@@ -71,6 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (editorFont) {
         editor.style.fontFamily = editorFont;
         fontSelect.value = editorFont;
+    }
+
+    if (editorBackgroundColor) {
+        editor.style.backgroundColor = editorBackgroundColor;
+        backgroundColorPicker.value = editorBackgroundColor;
+    }
+
+    if (editorTextColor) {
+        editor.style.color = editorTextColor;
+        textColorPicker.value = editorTextColor;
+    }
+
+    if (editorBold) {
+        editor.style.fontWeight = 'bold';
     }
 
     const fileListContainer = document.getElementById('file-list');

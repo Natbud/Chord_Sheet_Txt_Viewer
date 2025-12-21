@@ -258,8 +258,19 @@ textarea {
 
 #increase-font-size-btn,
 #decrease-font-size-btn,
-#toggle-fullscreen-btn {
+#toggle-fullscreen-btn,
+#bold-btn {
     margin-right: 10px;
+}
+
+#background-color-picker,
+#text-color-picker {
+    margin-right: 10px;
+}
+
+.buttons label {
+    margin-left: 10px;
+    margin-right: 5px;
 }
 
 .fullscreen .header,
