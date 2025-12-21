@@ -1,33 +1,20 @@
 # Text File Reader/Editor
 
-This is a simple web-based text file reader and editor that allows you to browse and edit text files from a local `txt_library` directory.
+This is a simple web-based text file reader and editor that allows you to browse and edit text files from your local file system.
 
 ## Features
 
-*   Browse a library of text files and subdirectories.
+*   Browse a local directory of text files and subdirectories.
 *   View and edit the contents of `.txt` files.
-*   Download a copy of the edited file.
+*   Save changes directly to your local files.
 
 ## How to Use
 
-1.  **Add your text files:** Place any `.txt` files you want to access into the `txt_library` directory. You can also create subdirectories to organize your files.
-
-2.  **Generate the file list:** Before running the application, you need to generate a list of the available files. Run the following command in your terminal:
-
-    ```bash
-    node generate-file-list.js
-    ```
-
-    This will create or update the `file-list.json` file, which the application uses to display the file browser. **You must run this script each time you add, remove, or rename files in the `txt_library` directory.**
-
-3.  **Open the application:** Open the `index.html` file in your web browser. You should now see the list of your files on the left-hand side.
+1.  **Open the application:** Open the `index.html` file in a modern web browser that supports the File System Access API (e.g., Chrome, Edge).
+2.  **Select a directory:** Click the "Select Directory" button to choose a local folder containing your `.txt` files.
+3.  **Browse and edit:** The file browser will display the contents of the selected directory. Click on a `.txt` file to view and edit its content.
+4.  **Save changes:** After editing, click the "Save File" button to save the changes directly to the original file on your local disk.
 
 ## Development
 
-This project is built with plain HTML, CSS, and JavaScript. To get started, you can run a simple local web server to serve the files. For example, using Python:
-
-```bash
-python -m http.server
-```
-
-Then, open your browser to `http://localhost:8000`.
+This project is built with plain HTML, CSS, and JavaScript and runs entirely in the browser using the File System Access API. No local server or build step is required.

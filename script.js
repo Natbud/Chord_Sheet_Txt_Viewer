@@ -1,92 +1,80 @@
 const saveBtn = document.getElementById('save-btn');
 const editor = document.getElementById('editor');
 const fileListContainer = document.getElementById('file-list');
+const selectDirBtn = document.getElementById('select-dir-btn');
 
-let currentFilePath = '';
+let currentFileHandle = null;
 
-function renderFileList(items, parentElement, pathPrefix = '') {
+async function renderFileList(directoryHandle, parentElement) {
     const list = document.createElement('ul');
-    if (pathPrefix) {
-        list.classList.add('nested');
-    }
 
-    items.forEach(item => {
+    for await (const entry of directoryHandle.values()) {
         const listItem = document.createElement('li');
-        const fullPath = pathPrefix ? `${pathPrefix}/${item.name}` : item.name;
+        listItem.textContent = entry.name;
 
-        if (item.type === 'directory') {
-            listItem.textContent = item.name;
+        if (entry.kind === 'directory') {
             listItem.classList.add('directory');
-            const childrenList = renderFileList(item.children, listItem, fullPath);
+            const childrenList = document.createElement('ul');
+            childrenList.classList.add('nested');
             listItem.appendChild(childrenList);
 
-            listItem.addEventListener('click', (event) => {
+            listItem.addEventListener('click', async (event) => {
                 event.stopPropagation();
+                if (!childrenList.classList.contains('populated')) {
+                    await renderFileList(entry, childrenList);
+                    childrenList.classList.add('populated');
+                }
                 childrenList.classList.toggle('active');
                 listItem.classList.toggle('expanded');
             });
         } else {
-            listItem.textContent = item.name;
             listItem.classList.add('file');
-            listItem.addEventListener('click', (event) => {
+            listItem.addEventListener('click', async (event) => {
                 event.stopPropagation();
-                loadFile(fullPath);
+                await loadFile(entry);
             });
         }
         list.appendChild(listItem);
-    });
-    parentElement.appendChild(list);
-    return list;
-}
-
-async function displayFileList() {
-    try {
-        const response = await fetch('file-list.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const files = await response.json();
-        fileListContainer.innerHTML = '';
-        renderFileList(files, fileListContainer);
-    } catch (error) {
-        console.error('Error fetching file list:', error);
-        fileListContainer.innerHTML = '<li>Error loading file list.</li>';
     }
+    parentElement.appendChild(list);
 }
 
-async function loadFile(filePath) {
+selectDirBtn.addEventListener('click', async () => {
     try {
-        const response = await fetch(`txt_library/${filePath}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const contents = await response.text();
+        const directoryHandle = await window.showDirectoryPicker();
+        fileListContainer.innerHTML = '';
+        await renderFileList(directoryHandle, fileListContainer);
+    } catch (error) {
+        console.error('Error selecting directory:', error);
+    }
+});
+
+async function loadFile(fileHandle) {
+    try {
+        const file = await fileHandle.getFile();
+        const contents = await file.text();
         editor.value = contents;
-        currentFilePath = filePath;
+        currentFileHandle = fileHandle;
+        saveBtn.textContent = 'Save File';
     } catch (error) {
         console.error('Error loading file:', error);
-        editor.value = `Error loading file: ${filePath}`;
+        editor.value = `Error loading file: ${fileHandle.name}`;
     }
 }
 
 saveBtn.addEventListener('click', async () => {
-    if (!currentFilePath) {
+    if (!currentFileHandle) {
         alert('Please select a file to save.');
         return;
     }
 
     try {
-        const blob = new Blob([editor.value], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        const filename = currentFilePath.split('/').pop();
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        alert('File downloaded successfully!');
+        const writable = await currentFileHandle.createWritable();
+        await writable.write(editor.value);
+        await writable.close();
+        alert('File saved successfully!');
     } catch (error) {
         console.error('Error saving file:', error);
+        alert('Error saving file. See console for details.');
     }
 });
-
-displayFileList();
