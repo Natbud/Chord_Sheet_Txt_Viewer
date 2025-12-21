@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const darkModeToggle = document.getElementById('dark-mode-toggle');
     const fontSelect = document.getElementById('font-select');
     const body = document.body;
+    const increaseFontSizeBtn = document.getElementById('increase-font-size-btn');
+    const decreaseFontSizeBtn = document.getElementById('decrease-font-size-btn');
+    const toggleFullscreenBtn = document.getElementById('toggle-fullscreen-btn');
 
     darkModeToggle.addEventListener('change', () => {
         body.classList.toggle('dark-mode');
@@ -31,6 +34,26 @@ document.addEventListener('DOMContentLoaded', () => {
     fontSelect.addEventListener('change', () => {
         editor.style.fontFamily = fontSelect.value;
         localStorage.setItem('editorFont', fontSelect.value);
+    });
+
+    let currentFontSize = localStorage.getItem('fontSize') ? parseInt(localStorage.getItem('fontSize')) : 16;
+    editor.style.fontSize = `${currentFontSize}px`;
+
+    increaseFontSizeBtn.addEventListener('click', () => {
+        currentFontSize += 2;
+        editor.style.fontSize = `${currentFontSize}px`;
+        localStorage.setItem('fontSize', currentFontSize);
+    });
+
+    decreaseFontSizeBtn.addEventListener('click', () => {
+        currentFontSize = Math.max(8, currentFontSize - 2);
+        editor.style.fontSize = `${currentFontSize}px`;
+        localStorage.setItem('fontSize', currentFontSize);
+    });
+
+    toggleFullscreenBtn.addEventListener('click', () => {
+        const container = document.querySelector('.container');
+        container.classList.toggle('fullscreen');
     });
 
     // Load settings from localStorage

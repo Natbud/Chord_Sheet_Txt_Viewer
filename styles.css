@@ -255,3 +255,18 @@ textarea {
 .dark-mode #toggle-sidebar-btn {
     color: #f1f1f1;
 }
+
+#increase-font-size-btn,
+#decrease-font-size-btn,
+#toggle-fullscreen-btn {
+    margin-right: 10px;
+}
+
+.fullscreen .header,
+.fullscreen #file-browser {
+    display: none;
+}
+
+.fullscreen .editor-container {
+    padding-left: 0;
+}
