@@ -97,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
         darkModeToggle.checked = true;
     }
 
-    // Set the body font to sans-serif by default
     body.style.fontFamily = 'sans-serif';
 
     if (editorFont) {
@@ -132,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let pathToUlMap = {};
     let fileHandlesMap = new Map();
 
-    // IndexedDB helper functions
     function openDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open('file-reader-db', 1);
@@ -169,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Function to verify permission for a stored handle
     async function verifyPermission(fileHandle, readWrite) {
         const options = {};
         if (readWrite) {
@@ -195,14 +192,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createFileListItem(entry, relativePath) {
         const listItem = document.createElement('li');
-
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.dataset.filePath = relativePath;
         checkbox.dataset.fileName = entry.name;
         checkbox.addEventListener('click', (e) => e.stopPropagation());
         listItem.appendChild(checkbox);
-
         const label = document.createElement('span');
         const truncatedName = truncateFilename(entry.name);
         label.textContent = truncatedName;
@@ -210,11 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
             label.title = entry.name;
         }
         listItem.appendChild(label);
-
         listItem.classList.add('file');
         listItem.draggable = true;
         listItem.dataset.filePath = relativePath;
-
         listItem.addEventListener('click', async (event) => {
             event.stopPropagation();
             await loadFile(entry);
@@ -225,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderFileList(directoryHandle, listElement, currentPath = '') {
         listElement.innerHTML = '';
         pathToUlMap[currentPath] = listElement;
-
         for await (const entry of directoryHandle.values()) {
             const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
             if (entry.kind === 'directory') {
@@ -236,7 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 childrenList.classList.add('nested');
                 listItem.appendChild(childrenList);
                 pathToUlMap[newPath] = childrenList;
-
                 listItem.addEventListener('click', async (event) => {
                     event.stopPropagation();
                     if (!childrenList.classList.contains('populated')) {
@@ -255,21 +246,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let draggedItem = null;
-
     fileListContainer.addEventListener('dragstart', (event) => {
         draggedItem = event.target;
         setTimeout(() => {
             event.target.style.display = 'none';
         }, 0);
     });
-
     fileListContainer.addEventListener('dragend', (event) => {
         setTimeout(() => {
             draggedItem.style.display = '';
             draggedItem = null;
         }, 0);
     });
-
     fileListContainer.addEventListener('dragover', (event) => {
         event.preventDefault();
         const container = draggedItem.closest('ul');
@@ -283,16 +271,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getDragAfterElement(container, y) {
         const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
-
         return draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
             const offset = y - box.top - box.height / 2;
             if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
+                return {
+                    offset: offset,
+                    element: child
+                };
             } else {
                 return closest;
             }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }, {
+            offset: Number.NEGATIVE_INFINITY
+        }).element;
     }
 
     selectDirBtn.addEventListener('click', async () => {
@@ -322,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             fileHandle = fileHandleOrPath;
         }
-
         try {
             const file = await fileHandle.getFile();
             const contents = await file.text();
@@ -340,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please select a file to save.');
             return;
         }
-
         try {
             const writable = await currentFileHandle.createWritable();
             await writable.write(editor.value);
@@ -371,15 +361,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Tab functionality
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
-
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-
             const tabName = tab.dataset.tab;
             tabContents.forEach(content => {
                 content.classList.remove('active');
@@ -390,14 +377,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Set List functionality
     const createSetListBtn = document.getElementById('create-set-list-btn');
     const setListNameInput = document.getElementById('set-list-name');
-    const setListSelectForAdd = document.getElementById('set-list-select-for-add');
+    const addToSetListSelect = document.getElementById('add-to-set-list-select');
     const addToSetListBtn = document.getElementById('add-to-set-list-btn');
-    const setListSelectForDelete = document.getElementById('set-list-select-for-delete');
+    const setListSelect = document.getElementById('set-list-select');
     const deleteSetListBtn = document.getElementById('delete-set-list-btn');
-    const setListsContainer = document.getElementById('set-lists-container');
+    const setListFilesContainer = document.getElementById('set-list-files');
     const importSetListsBtn = document.getElementById('import-set-lists-btn');
     const exportSetListsBtn = document.getElementById('export-set-lists-btn');
 
@@ -409,95 +395,80 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('setLists', JSON.stringify(setLists));
     }
 
-    function renderSetLists() {
+    function renderSelectedSetListFiles() {
+        const selectedSetListName = setListSelect.value;
         const setLists = getSetLists();
-        setListsContainer.innerHTML = '';
-
-        for (const name in setLists) {
-            const setListDiv = document.createElement('div');
-            setListDiv.classList.add('set-list');
-
-            const h3 = document.createElement('h3');
-            h3.textContent = name;
-            setListDiv.appendChild(h3);
-
-            const ul = document.createElement('ul');
-            const files = setLists[name];
-
-            if (files.length === 0) {
+        const files = setLists[selectedSetListName] || [];
+        setListFilesContainer.innerHTML = '';
+        if (files.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = '(No files in this set list)';
+            li.classList.add('empty-set-list');
+            setListFilesContainer.appendChild(li);
+        } else {
+            files.forEach((file, index) => {
                 const li = document.createElement('li');
-                li.textContent = '(empty)';
-                li.classList.add('empty-set-list');
-                ul.appendChild(li);
-            } else {
-                files.forEach((file, index) => {
-                    const li = document.createElement('li');
-                    li.textContent = truncateFilename(file.name);
-                    if (truncateFilename(file.name) !== file.name) {
-                        li.title = file.name;
-                    }
-                    li.classList.add('file');
-                    li.dataset.filePath = file.path;
-
-                    li.addEventListener('click', async () => {
-                        await loadFile(file.path);
-                    });
-
-                    const removeBtn = document.createElement('button');
-                    removeBtn.textContent = 'x';
-                    removeBtn.classList.add('remove-from-set-list-btn');
-                    removeBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        removeFileFromSetList(name, index);
-                    });
-
-                    li.appendChild(removeBtn);
-                    ul.appendChild(li);
+                li.textContent = truncateFilename(file.name);
+                if (truncateFilename(file.name) !== file.name) {
+                    li.title = file.name;
+                }
+                li.classList.add('file');
+                li.dataset.filePath = file.path;
+                li.addEventListener('click', async () => {
+                    await loadFile(file.path);
                 });
-            }
-            setListDiv.appendChild(ul);
-            setListsContainer.appendChild(setListDiv);
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'x';
+                removeBtn.classList.add('remove-from-set-list-btn');
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeFileFromSetList(selectedSetListName, index);
+                });
+                li.appendChild(removeBtn);
+                setListFilesContainer.appendChild(li);
+            });
         }
     }
+    setListSelect.addEventListener('change', renderSelectedSetListFiles);
 
     function removeFileFromSetList(setListName, fileIndex) {
         const setLists = getSetLists();
         if (setLists[setListName]) {
             setLists[setListName].splice(fileIndex, 1);
             saveSetLists(setLists);
-            renderSetLists();
+            renderSelectedSetListFiles();
         }
     }
 
     function populateSetListSelects() {
         const setLists = getSetLists();
-        setListSelectForAdd.innerHTML = '';
-        setListSelectForDelete.innerHTML = '';
-
-        const noListOption = document.createElement('option');
-        noListOption.value = "";
-        noListOption.textContent = "Select a set list";
-        setListSelectForAdd.appendChild(noListOption);
-
+        const currentSetList = setListSelect.value;
+        addToSetListSelect.innerHTML = '';
+        setListSelect.innerHTML = '';
+        const noListOptionForAdd = document.createElement('option');
+        noListOptionForAdd.value = "";
+        noListOptionForAdd.textContent = "Select a set list";
+        addToSetListSelect.appendChild(noListOptionForAdd);
         if (Object.keys(setLists).length === 0) {
             const option = document.createElement('option');
             option.textContent = 'No set lists created';
             option.disabled = true;
-            setListSelectForDelete.appendChild(option.cloneNode(true));
+            setListSelect.appendChild(option);
         } else {
             for (const name in setLists) {
                 const option = document.createElement('option');
                 option.value = name;
                 option.textContent = name;
-                setListSelectForAdd.appendChild(option.cloneNode(true));
-                setListSelectForDelete.appendChild(option.cloneNode(true));
+                addToSetListSelect.appendChild(option.cloneNode(true));
+                setListSelect.appendChild(option);
             }
         }
+        setListSelect.value = currentSetList;
     }
 
     function updateUI() {
         populateSetListSelects();
-        renderSetLists();
+        renderSelectedSetListFiles();
     }
 
     createSetListBtn.addEventListener('click', () => {
@@ -506,64 +477,59 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please enter a name for the set list.');
             return;
         }
-
         const setLists = getSetLists();
         if (setLists[name]) {
             alert('A set list with this name already exists.');
             return;
         }
-
         setLists[name] = [];
         saveSetLists(setLists);
-        updateUI();
         setListNameInput.value = '';
+        populateSetListSelects();
+        setListSelect.value = name;
+        renderSelectedSetListFiles();
         alert('Set list created!');
     });
 
     addToSetListBtn.addEventListener('click', () => {
-        const selectedSetListName = setListSelectForAdd.value;
+        const selectedSetListName = addToSetListSelect.value;
         if (!selectedSetListName) {
             alert('Please select a set list to add files to.');
             return;
         }
-
         const selectedFilesCheckboxes = fileListContainer.querySelectorAll('input[type="checkbox"]:checked');
         if (selectedFilesCheckboxes.length === 0) {
             alert('Please select at least one file to add.');
             return;
         }
-
         const setLists = getSetLists();
         const targetSetList = setLists[selectedSetListName];
-
         selectedFilesCheckboxes.forEach(checkbox => {
             const file = {
                 path: checkbox.dataset.filePath,
                 name: checkbox.dataset.fileName
             };
-
             if (!targetSetList.some(f => f.path === file.path)) {
                 targetSetList.push(file);
             }
             checkbox.checked = false;
         });
-
         saveSetLists(setLists);
-        renderSetLists();
+        if (setListSelect.value === selectedSetListName) {
+            renderSelectedSetListFiles();
+        }
         alert(`Added ${selectedFilesCheckboxes.length} file(s) to ${selectedSetListName}.`);
     });
 
     deleteSetListBtn.addEventListener('click', () => {
-        const name = setListSelectForDelete.value;
+        const name = setListSelect.value;
         if (!name) {
             alert('Please select a set list to delete.');
             return;
         }
-
         if (!confirm(`Are you sure you want to delete the set list "${name}"?`)) {
             return;
         }
-
         const setLists = getSetLists();
         delete setLists[name];
         saveSetLists(setLists);
@@ -577,7 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('There are no set lists to export.');
             return;
         }
-
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(setLists, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -597,13 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!file) {
                 return;
             }
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const importedSetLists = JSON.parse(e.target.result);
                     const existingSetLists = getSetLists();
-                    const mergedSetLists = { ...existingSetLists, ...importedSetLists };
+                    const mergedSetLists = { ...existingSetLists,
+                        ...importedSetLists
+                    };
                     saveSetLists(mergedSetLists);
                     updateUI();
                     alert('Set lists imported successfully!');
@@ -616,7 +582,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         fileInput.click();
     });
-
     loadInitialDirectory();
     updateUI();
 });
