@@ -15,7 +15,8 @@
         <div class="main-content">
             <div id="file-browser">
                 <button id="toggle-sidebar-btn">&#9776;</button>
-                <button id="select-dir-btn">Select Directory</button>
+                <button id="import-files-btn">Import Files</button>
+                <input type="file" id="file-input" multiple style="display: none;">
                 <div class="tabs">
                     <div class="tab active" data-tab="files">Files</div>
                     <div class="tab" data-tab="set-lists">Set Lists</div>
@@ -57,6 +58,27 @@
             </div>
         </div>
     </div>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDQE-4L-Gk05N1ShkZLcrQig8yPRltRT8s",
+        authDomain: "chordsheettxtviewer.firebaseapp.com",
+        databaseURL: "https://chordsheettxtviewer-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "chordsheettxtviewer",
+        storageBucket: "chordsheettxtviewer.firebasestorage.app",
+        messagingSenderId: "336810647120",
+        appId: "1:336810647120:web:1349f6f9887c7ab7983b55"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    </script>
+
+    <script src="firebase.js"></script>
     <script src="script.js"></script>
     <div id="settings-modal" class="modal">
         <div class="modal-content">
