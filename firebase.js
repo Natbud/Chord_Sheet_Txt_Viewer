@@ -3,9 +3,10 @@
 /**
  * Uploads a file to the Firebase Realtime Database.
  * @param {File} file - The file to upload.
+ * @param {string[]} tags - The tags to assign to the file.
  * @returns {Promise<void>} A promise that resolves when the file is uploaded.
  */
-function uploadFile(file) {
+function uploadFile(file, tags = []) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -14,7 +15,8 @@ function uploadFile(file) {
       const fileRef = firebase.database().ref('files/' + fileName.replace(/\.txt$/, ''));
       fileRef.set({
         name: fileName,
-        content: content
+        content: content,
+        tags: tags
       }).then(resolve).catch(reject);
     };
     reader.onerror = reject;
@@ -61,4 +63,40 @@ function getFileContent(fileId) {
 function saveFileContent(fileId, content) {
   const fileRef = firebase.database().ref('files/' + fileId + '/content');
   return fileRef.set(content);
+}
+
+/**
+ * Deletes a file from the Firebase Realtime Database.
+ * @param {string} fileId - The ID of the file to delete.
+ * @returns {Promise<void>} A promise that resolves when the file is deleted.
+ */
+function deleteFile(fileId) {
+  const fileRef = firebase.database().ref('files/' + fileId);
+  return fileRef.remove();
+}
+
+/**
+ * Gets a list of all unique tags from Firebase.
+ * @returns {Promise<string[]>} A promise that resolves with an array of unique tags.
+ */
+async function getTags() {
+    const files = await getFiles();
+    const allTags = new Set();
+    files.forEach(file => {
+        if (file.tags) {
+            file.tags.forEach(tag => allTags.add(tag));
+        }
+    });
+    return Array.from(allTags).sort();
+}
+
+/**
+ * Updates the tags for a specific file.
+ * @param {string} fileId - The ID of the file to update.
+ * @param {string[]} tags - The new array of tags for the file.
+ * @returns {Promise<void>} A promise that resolves when the tags are updated.
+ */
+function updateFileTags(fileId, tags) {
+    const tagsRef = firebase.database().ref('files/' + fileId + '/tags');
+    return tagsRef.set(tags);
 }

@@ -137,16 +137,20 @@ document.addEventListener('DOMContentLoaded', () => {
     fileInput.addEventListener('change', async (event) => {
         const files = event.target.files;
         if (files.length > 0) {
-            for (const file of files) {
-                try {
-                    await uploadFile(file);
-                } catch (error) {
-                    console.error('Error uploading file:', error);
-                    alert(`Error uploading file: ${file.name}`);
+            openAssignTagsModal(null, async (tags) => {
+                for (const file of files) {
+                    try {
+                        await uploadFile(file, tags);
+                    } catch (error) {
+                        console.error('Error uploading file:', error);
+                        alert(`Error uploading file: ${file.name}`);
+                    }
                 }
-            }
-            alert('Files imported successfully!');
-            await renderFileList();
+                alert('Files imported successfully!');
+                await renderFileList();
+                await renderTagsList();
+                await populateTagFilter();
+            });
         }
     });
 
@@ -182,12 +186,37 @@ document.addEventListener('DOMContentLoaded', () => {
             event.stopPropagation();
             await loadFile(file.id);
         });
+
+        const tagsContainer = document.createElement('div');
+        tagsContainer.classList.add('file-tags');
+        if (file.tags) {
+            file.tags.forEach(tag => {
+                const tagBadge = document.createElement('span');
+                tagBadge.textContent = tag;
+                tagBadge.classList.add('tag-badge');
+                tagsContainer.appendChild(tagBadge);
+            });
+        }
+        listItem.appendChild(tagsContainer);
+
+        const assignBtn = document.createElement('button');
+        assignBtn.textContent = 'Tags';
+        assignBtn.classList.add('assign-tags-btn');
+        assignBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAssignTagsModal(file.id);
+        });
+        listItem.appendChild(assignBtn);
+
         return listItem;
     }
 
-    async function renderFileList() {
+    async function renderFileList(tagFilter = '') {
         try {
-            const files = await getFiles();
+            let files = await getFiles();
+            if (tagFilter) {
+                files = files.filter(file => file.tags && file.tags.includes(tagFilter));
+            }
             fileListContainer.innerHTML = '';
             const ul = document.createElement('ul');
             files.forEach(file => {
@@ -361,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please select a set list to add files to.');
             return;
         }
-        const selectedFilesCheckboxes = fileListContainer.querySelectorAll('input[type="checkbox"]:checked');
+        const selectedFilesCheckboxes = fileListContainer.querySelectorAll('li input[type="checkbox"]:checked');
         if (selectedFilesCheckboxes.length === 0) {
             alert('Please select at least one file to add.');
             return;
@@ -449,4 +478,167 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderFileList();
     updateUI();
+    renderTagsList();
+    populateTagFilter();
+
+    const tagFilterSelect = document.getElementById('tag-filter-select');
+    tagFilterSelect.addEventListener('change', () => {
+        renderFileList(tagFilterSelect.value);
+    });
+
+    async function populateTagFilter() {
+        const tags = await getTags();
+        const currentFilter = tagFilterSelect.value;
+        tagFilterSelect.innerHTML = '<option value="">All Tags</option>';
+        tags.forEach(tag => {
+            const option = document.createElement('option');
+            option.value = tag;
+            option.textContent = tag;
+            tagFilterSelect.appendChild(option);
+        });
+        tagFilterSelect.value = currentFilter;
+    }
+
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const selectNoneBtn = document.getElementById('select-none-btn');
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+
+    selectAllBtn.addEventListener('click', () => {
+        fileListContainer.querySelectorAll('li input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+
+    selectNoneBtn.addEventListener('click', () => {
+        fileListContainer.querySelectorAll('li input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+
+    deleteSelectedBtn.addEventListener('click', async () => {
+        const selectedFilesCheckboxes = fileListContainer.querySelectorAll('li input[type="checkbox"]:checked');
+        if (selectedFilesCheckboxes.length === 0) {
+            alert('Please select at least one file to delete.');
+            return;
+        }
+        if (!confirm(`Are you sure you want to delete ${selectedFilesCheckboxes.length} file(s)?`)) {
+            return;
+        }
+        for (const checkbox of selectedFilesCheckboxes) {
+            try {
+                await deleteFile(checkbox.dataset.fileId);
+            } catch (error) {
+                console.error('Error deleting file:', error);
+                alert(`Error deleting file: ${checkbox.dataset.fileName}`);
+            }
+        }
+        alert('Selected files deleted successfully!');
+        await renderFileList();
+    });
+
+    const tagsListContainer = document.getElementById('tags-list');
+
+    async function renderTagsList() {
+        const tags = await getTags();
+        tagsListContainer.innerHTML = '';
+        tags.forEach(tag => {
+            const li = document.createElement('li');
+            li.textContent = tag;
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'x';
+            deleteBtn.classList.add('delete-tag-btn');
+            deleteBtn.addEventListener('click', async () => {
+                if (confirm(`Are you sure you want to delete the tag "${tag}"? This will remove it from all files.`)) {
+                    const files = await getFiles();
+                    for (const file of files) {
+                        if (file.tags && file.tags.includes(tag)) {
+                            const newTags = file.tags.filter(t => t !== tag);
+                            await updateFileTags(file.id, newTags);
+                        }
+                    }
+                    await renderTagsList();
+                    await renderFileList();
+                    await populateTagFilter();
+                    alert(`Tag "${tag}" deleted.`);
+                }
+            });
+            li.appendChild(deleteBtn);
+            tagsListContainer.appendChild(li);
+        });
+    }
+
+    const assignTagsModal = document.getElementById('assign-tags-modal');
+    const modalTagsList = document.getElementById('modal-tags-list');
+    const modalNewTagInput = document.getElementById('modal-new-tag');
+    const modalAddTagBtn = document.getElementById('modal-add-tag-btn');
+    const modalSaveBtn = document.getElementById('modal-save-tags-btn');
+    const modalCancelBtn = document.getElementById('modal-cancel-tags-btn');
+    const modalCloseBtn = assignTagsModal.querySelector('.close-button');
+
+    let currentFileIdForTags = null;
+    let onSaveCallback = null;
+
+    async function openAssignTagsModal(fileId, onSave = null) {
+        currentFileIdForTags = fileId;
+        onSaveCallback = onSave;
+        const allTags = await getTags();
+        let fileTags = [];
+        if (fileId) {
+            const files = await getFiles();
+            const currentFile = files.find(f => f.id === fileId);
+            if (currentFile && currentFile.tags) {
+                fileTags = currentFile.tags;
+            }
+        }
+
+        modalTagsList.innerHTML = '';
+        allTags.forEach(tag => {
+            const tagEl = document.createElement('div');
+            tagEl.textContent = tag;
+            tagEl.classList.add('tag');
+            if (fileTags.includes(tag)) {
+                tagEl.classList.add('selected');
+            }
+            tagEl.addEventListener('click', () => {
+                tagEl.classList.toggle('selected');
+            });
+            modalTagsList.appendChild(tagEl);
+        });
+        assignTagsModal.style.display = 'block';
+    }
+
+    function closeAssignTagsModal() {
+        assignTagsModal.style.display = 'none';
+        modalNewTagInput.value = '';
+    }
+
+    modalAddTagBtn.addEventListener('click', () => {
+        const newTagName = modalNewTagInput.value.trim();
+        if (newTagName && !Array.from(modalTagsList.children).some(el => el.textContent === newTagName)) {
+            const tagEl = document.createElement('div');
+            tagEl.textContent = newTagName;
+            tagEl.classList.add('tag', 'selected');
+            tagEl.addEventListener('click', () => {
+                tagEl.classList.toggle('selected');
+            });
+            modalTagsList.appendChild(tagEl);
+            modalNewTagInput.value = '';
+        }
+    });
+
+    modalSaveBtn.addEventListener('click', async () => {
+        const selectedTags = Array.from(modalTagsList.querySelectorAll('.tag.selected')).map(el => el.textContent);
+        if (onSaveCallback) {
+            onSaveCallback(selectedTags);
+        } else if (currentFileIdForTags) {
+            await updateFileTags(currentFileIdForTags, selectedTags);
+            await renderFileList();
+            await renderTagsList();
+            await populateTagFilter();
+        }
+        closeAssignTagsModal();
+    });
+
+    modalCancelBtn.addEventListener('click', closeAssignTagsModal);
+    modalCloseBtn.addEventListener('click', closeAssignTagsModal);
 });
