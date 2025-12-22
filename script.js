@@ -516,6 +516,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectAllBtn = document.getElementById('select-all-btn');
     const selectNoneBtn = document.getElementById('select-none-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    const manageTagsBtn = document.getElementById('manage-tags-btn');
+
+    manageTagsBtn.addEventListener('click', () => {
+        const selectedFilesCheckboxes = fileListContainer.querySelectorAll('li input[type="checkbox"]:checked');
+        if (selectedFilesCheckboxes.length === 0) {
+            alert('Please select at least one file to manage tags.');
+            return;
+        }
+        const fileIds = Array.from(selectedFilesCheckboxes).map(cb => cb.dataset.fileId);
+        openAssignTagsModal(fileIds);
+    });
 
     selectAllBtn.addEventListener('click', () => {
         fileListContainer.querySelectorAll('li input[type="checkbox"]').forEach(checkbox => {
@@ -562,8 +573,14 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteBtn.textContent = 'x';
             deleteBtn.classList.add('delete-tag-btn');
             deleteBtn.addEventListener('click', async () => {
+                const files = await getFiles();
+                const isTagInUse = files.some(file => file.tags && file.tags.includes(tag));
+                if (isTagInUse) {
+                    alert(`Tag "${tag}" is currently in use and cannot be deleted.`);
+                    return;
+                }
+
                 if (confirm(`Are you sure you want to delete the tag "${tag}"? This will remove it from all files.`)) {
-                    const files = await getFiles();
                     for (const file of files) {
                         if (file.tags && file.tags.includes(tag)) {
                             const newTags = file.tags.filter(t => t !== tag);
@@ -585,25 +602,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTagsList = document.getElementById('modal-tags-list');
     const modalNewTagInput = document.getElementById('modal-new-tag');
     const modalAddTagBtn = document.getElementById('modal-add-tag-btn');
-    const modalSaveBtn = document.getElementById('modal-save-tags-btn');
-    const modalCancelBtn = document.getElementById('modal-cancel-tags-btn');
+    const modalAddTagsBtn = document.getElementById('modal-add-tags-btn');
+    const modalRemoveTagsBtn = document.getElementById('modal-remove-tags-btn');
+    const modalCloseTagsBtn = document.getElementById('modal-close-tags-btn');
     const modalCloseBtn = assignTagsModal.querySelector('.close-button');
 
-    let currentFileIdForTags = null;
+    let currentFileIdsForTags = [];
     let onSaveCallback = null;
 
-    async function openAssignTagsModal(fileId, onSave = null) {
-        currentFileIdForTags = fileId;
+    async function openAssignTagsModal(fileIds, onSave = null) {
+        if (!Array.isArray(fileIds)) {
+            currentFileIdsForTags = [fileIds];
+        } else {
+            currentFileIdsForTags = fileIds;
+        }
         onSaveCallback = onSave;
         const allTags = await getTags();
         let fileTags = [];
-        if (fileId) {
+
+        if (currentFileIdsForTags.length > 0) {
             const files = await getFiles();
-            const currentFile = files.find(f => f.id === fileId);
-            if (currentFile && currentFile.tags) {
-                fileTags = currentFile.tags;
+            const selectedFiles = files.filter(f => currentFileIdsForTags.includes(f.id));
+
+            if (selectedFiles.length > 0) {
+                // Find intersection of tags for multiple files
+                fileTags = selectedFiles.reduce((acc, file) => {
+                    return acc.filter(tag => file.tags && file.tags.includes(tag));
+                }, selectedFiles[0].tags || []);
             }
         }
+
 
         modalTagsList.innerHTML = '';
         allTags.forEach(tag => {
@@ -640,19 +668,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    modalSaveBtn.addEventListener('click', async () => {
+    async function handleTaggingLogic(add) {
         const selectedTags = Array.from(modalTagsList.querySelectorAll('.tag.selected')).map(el => el.textContent);
         if (onSaveCallback) {
             onSaveCallback(selectedTags);
-        } else if (currentFileIdForTags) {
-            await updateFileTags(currentFileIdForTags, selectedTags);
+        } else if (currentFileIdsForTags && currentFileIdsForTags.length > 0) {
+            const files = await getFiles();
+            for (const fileId of currentFileIdsForTags) {
+                const file = files.find(f => f.id === fileId);
+                if (file) {
+                    let newTags;
+                    if (add) {
+                        newTags = [...new Set([...(file.tags || []), ...selectedTags])];
+                    } else {
+                        newTags = (file.tags || []).filter(tag => !selectedTags.includes(tag));
+                    }
+                    await updateFileTags(fileId, newTags);
+                }
+            }
             await renderFileList();
             await renderTagsList();
             await populateTagFilter();
         }
         closeAssignTagsModal();
-    });
+    }
 
-    modalCancelBtn.addEventListener('click', closeAssignTagsModal);
+    modalAddTagsBtn.addEventListener('click', () => handleTaggingLogic(true));
+    modalRemoveTagsBtn.addEventListener('click', () => handleTaggingLogic(false));
+    modalCloseTagsBtn.addEventListener('click', closeAssignTagsModal);
     modalCloseBtn.addEventListener('click', closeAssignTagsModal);
 });
