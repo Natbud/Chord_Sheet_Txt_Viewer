@@ -371,6 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const setListSelect = document.getElementById('set-list-select');
     const loadSetListBtn = document.getElementById('load-set-list-btn');
     const deleteSetListBtn = document.getElementById('delete-set-list-btn');
+    const importSetListsBtn = document.getElementById('import-set-lists-btn');
+    const exportSetListsBtn = document.getElementById('export-set-lists-btn');
 
     function getSetLists() {
         return JSON.parse(localStorage.getItem('setLists')) || {};
@@ -471,6 +473,52 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSetLists(setLists);
         populateSetLists();
         alert('Set list deleted!');
+    });
+
+    exportSetListsBtn.addEventListener('click', () => {
+        const setLists = getSetLists();
+        if (Object.keys(setLists).length === 0) {
+            alert('There are no set lists to export.');
+            return;
+        }
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(setLists, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "set-lists.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        alert('Set lists exported successfully!');
+    });
+
+    importSetListsBtn.addEventListener('click', () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedSetLists = JSON.parse(e.target.result);
+                    const existingSetLists = getSetLists();
+                    const mergedSetLists = { ...existingSetLists, ...importedSetLists };
+                    saveSetLists(mergedSetLists);
+                    populateSetLists();
+                    alert('Set lists imported successfully!');
+                } catch (error) {
+                    alert('Error importing set lists. Please make sure the file is a valid JSON file.');
+                    console.error('Error parsing JSON:', error);
+                }
+            };
+            reader.readAsText(file);
+        };
+        fileInput.click();
     });
 
     loadInitialDirectory();
