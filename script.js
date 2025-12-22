@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     let currentFileHandle = null;
+    let pathToUlMap = {};
 
     // IndexedDB helper functions
     function openDB() {
@@ -194,43 +195,93 @@ document.addEventListener('DOMContentLoaded', () => {
         return name.substring(0, startLength) + '...' + name.substring(name.length - endLength);
     }
 
-    async function renderFileList(directoryHandle, parentElement) {
-        const list = document.createElement('ul');
+    function createFileListItem(entry, relativePath) {
+        const listItem = document.createElement('li');
+        const truncatedName = truncateFilename(entry.name);
+        listItem.textContent = truncatedName;
+        if (truncatedName !== entry.name) {
+            listItem.title = entry.name;
+        }
+        listItem.classList.add('file');
+        listItem.draggable = true;
+        listItem.dataset.filePath = relativePath;
+        listItem.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            await loadFile(entry);
+        });
+        return listItem;
+    }
+
+    async function renderFileList(directoryHandle, listElement, currentPath = '') {
+        listElement.innerHTML = '';
+        pathToUlMap[currentPath] = listElement;
 
         for await (const entry of directoryHandle.values()) {
-            const listItem = document.createElement('li');
-
+            const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
             if (entry.kind === 'directory') {
+                const listItem = document.createElement('li');
                 listItem.textContent = entry.name;
                 listItem.classList.add('directory');
                 const childrenList = document.createElement('ul');
                 childrenList.classList.add('nested');
                 listItem.appendChild(childrenList);
+                pathToUlMap[newPath] = childrenList;
 
                 listItem.addEventListener('click', async (event) => {
                     event.stopPropagation();
                     if (!childrenList.classList.contains('populated')) {
-                        await renderFileList(entry, childrenList);
+                        await renderFileList(entry, childrenList, newPath);
                         childrenList.classList.add('populated');
                     }
                     childrenList.classList.toggle('active');
                     listItem.classList.toggle('expanded');
                 });
+                listElement.appendChild(listItem);
             } else {
-                const truncatedName = truncateFilename(entry.name);
-                listItem.textContent = truncatedName;
-                if (truncatedName !== entry.name) {
-                    listItem.title = entry.name;
-                }
-                listItem.classList.add('file');
-                listItem.addEventListener('click', async (event) => {
-                    event.stopPropagation();
-                    await loadFile(entry);
-                });
+                listElement.appendChild(createFileListItem(entry, newPath));
             }
-            list.appendChild(listItem);
         }
-        parentElement.appendChild(list);
+    }
+
+    let draggedItem = null;
+
+    fileListContainer.addEventListener('dragstart', (event) => {
+        draggedItem = event.target;
+        setTimeout(() => {
+            event.target.style.display = 'none';
+        }, 0);
+    });
+
+    fileListContainer.addEventListener('dragend', (event) => {
+        setTimeout(() => {
+            draggedItem.style.display = '';
+            draggedItem = null;
+        }, 0);
+    });
+
+    fileListContainer.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        const container = draggedItem.closest('ul');
+        const afterElement = getDragAfterElement(container, event.clientY);
+        if (afterElement == null) {
+            container.appendChild(draggedItem);
+        } else {
+            container.insertBefore(draggedItem, afterElement);
+        }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
     selectDirBtn.addEventListener('click', async () => {
@@ -238,7 +289,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const directoryHandle = await window.showDirectoryPicker();
             await set('directoryHandle', directoryHandle);
             fileListContainer.innerHTML = '';
-            await renderFileList(directoryHandle, fileListContainer);
+            pathToUlMap = {};
+            const rootUl = document.createElement('ul');
+            fileListContainer.appendChild(rootUl);
+            await renderFileList(directoryHandle, rootUl);
         } catch (error) {
             console.error('Error selecting directory:', error);
         }
@@ -281,7 +335,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasPermission = await verifyPermission(directoryHandle);
                 if (hasPermission) {
                     fileListContainer.innerHTML = '';
-                    await renderFileList(directoryHandle, fileListContainer);
+                    pathToUlMap = {};
+                    const rootUl = document.createElement('ul');
+                    fileListContainer.appendChild(rootUl);
+                    await renderFileList(directoryHandle, rootUl);
                 }
             }
         } catch (error) {
@@ -289,5 +346,133 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Tab functionality
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            const tabName = tab.dataset.tab;
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tabName}-content`) {
+                    content.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // Set List functionality
+    const saveSetListBtn = document.getElementById('save-set-list-btn');
+    const setListNameInput = document.getElementById('set-list-name');
+    const setListSelect = document.getElementById('set-list-select');
+    const loadSetListBtn = document.getElementById('load-set-list-btn');
+    const deleteSetListBtn = document.getElementById('delete-set-list-btn');
+
+    function getSetLists() {
+        return JSON.parse(localStorage.getItem('setLists')) || {};
+    }
+
+    function saveSetLists(setLists) {
+        localStorage.setItem('setLists', JSON.stringify(setLists));
+    }
+
+    function populateSetLists() {
+        const setLists = getSetLists();
+        setListSelect.innerHTML = '';
+        for (const name in setLists) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            setListSelect.appendChild(option);
+        }
+    }
+
+    saveSetListBtn.addEventListener('click', () => {
+        const name = setListNameInput.value.trim();
+        if (!name) {
+            alert('Please enter a name for the set list.');
+            return;
+        }
+
+        const fileOrder = [...fileListContainer.querySelectorAll('li.file')].map(li => li.dataset.filePath);
+        const setLists = getSetLists();
+        setLists[name] = fileOrder;
+        saveSetLists(setLists);
+        populateSetLists();
+        setListNameInput.value = '';
+        alert('Set list saved!');
+    });
+
+    async function getFileHandlesRecursive(directoryHandle, path = '') {
+        const fileHandles = new Map();
+        for await (const entry of directoryHandle.values()) {
+            const newPath = path ? `${path}/${entry.name}` : entry.name;
+            if (entry.kind === 'file') {
+                fileHandles.set(newPath, entry);
+            } else if (entry.kind === 'directory') {
+                const nestedFileHandles = await getFileHandlesRecursive(entry, newPath);
+                for (const [nestedPath, handle] of nestedFileHandles.entries()) {
+                    fileHandles.set(nestedPath, handle);
+                }
+            }
+        }
+        return fileHandles;
+    }
+
+    loadSetListBtn.addEventListener('click', async () => {
+        const name = setListSelect.value;
+        if (!name) {
+            alert('Please select a set list to load.');
+            return;
+        }
+
+        const setLists = getSetLists();
+        const fileOrder = setLists[name];
+
+        const fileLiMap = new Map();
+        document.querySelectorAll('#file-list li.file').forEach(li => {
+            fileLiMap.set(li.dataset.filePath, li);
+            li.remove();
+        });
+
+        fileOrder.forEach(filePath => {
+            const parentPath = filePath.substring(0, filePath.lastIndexOf('/')) || '';
+            const ul = pathToUlMap[parentPath];
+            const li = fileLiMap.get(filePath);
+            if (ul && li) {
+                ul.appendChild(li);
+                fileLiMap.delete(filePath);
+            }
+        });
+
+        // Append any remaining files that were not in the set list
+        for (const [filePath, li] of fileLiMap.entries()) {
+            const parentPath = filePath.substring(0, filePath.lastIndexOf('/')) || '';
+            const ul = pathToUlMap[parentPath];
+            if (ul) {
+                ul.appendChild(li);
+            }
+        }
+    });
+
+    deleteSetListBtn.addEventListener('click', () => {
+        const name = setListSelect.value;
+        if (!name) {
+            alert('Please select a set list to delete.');
+            return;
+        }
+
+        const setLists = getSetLists();
+        delete setLists[name];
+        saveSetLists(setLists);
+        populateSetLists();
+        alert('Set list deleted!');
+    });
+
     loadInitialDirectory();
+    populateSetLists();
 });
