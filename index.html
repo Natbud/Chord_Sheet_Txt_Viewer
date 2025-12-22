@@ -20,8 +20,19 @@
                 <div class="tabs">
                     <div class="tab active" data-tab="files">Files</div>
                     <div class="tab" data-tab="set-lists">Set Lists</div>
+                    <div class="tab" data-tab="tags">Tags</div>
                 </div>
                 <div id="files-content" class="tab-content active">
+                    <div id="file-actions">
+                        <button id="select-all-btn">Select All</button>
+                        <button id="select-none-btn">Select None</button>
+                        <button id="delete-selected-btn">Delete Selected</button>
+                    </div>
+                    <div id="filter-container">
+                        <select id="tag-filter-select">
+                            <option value="">All Tags</option>
+                        </select>
+                    </div>
                     <div id="add-to-set-list-container">
                         <select id="add-to-set-list-select"></select>
                         <button id="add-to-set-list-btn">Add to Set List</button>
@@ -40,6 +51,9 @@
                     <button id="export-set-lists-btn">Export Set Lists</button>
                     <hr>
                     <ul id="set-list-files"></ul>
+                </div>
+                <div id="tags-content" class="tab-content">
+                    <ul id="tags-list"></ul>
                 </div>
             </div>
             <div class="editor-container">
@@ -99,6 +113,19 @@
                     <option value="Verdana">Verdana</option>
                 </select>
             </div>
+        </div>
+    </div>
+    <div id="assign-tags-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Assign Tags</h2>
+            <div id="modal-tags-list"></div>
+            <hr>
+            <input type="text" id="modal-new-tag" placeholder="New tag">
+            <button id="modal-add-tag-btn">Add Tag</button>
+            <hr>
+            <button id="modal-save-tags-btn">Save</button>
+            <button id="modal-cancel-tags-btn">Cancel</button>
         </div>
     </div>
 </body>
