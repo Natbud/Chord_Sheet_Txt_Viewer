@@ -123,10 +123,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-input');
     const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
     const fileBrowser = document.getElementById('file-browser');
+    const resizer = document.getElementById('resizer');
+    const editorContainer = document.querySelector('.editor-container');
 
     toggleSidebarBtn.addEventListener('click', () => {
         fileBrowser.classList.toggle('collapsed');
     });
+
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+        });
+    });
+
+    function handleMouseMove(e) {
+        if (!isResizing) return;
+        const newWidth = e.clientX;
+        if (newWidth > 100 && newWidth < 500) {
+            fileBrowser.style.width = `${newWidth}px`;
+        }
+    }
 
     let currentFileId = null;
 
@@ -165,6 +186,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createFileListItem(file) {
         const listItem = document.createElement('li');
+
+        const assignBtn = document.createElement('button');
+        assignBtn.textContent = 'T';
+        assignBtn.classList.add('assign-tags-btn-small');
+        assignBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAssignTagsModal(file.id);
+        });
+        listItem.appendChild(assignBtn);
+
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.dataset.fileId = file.id;
@@ -175,9 +206,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const label = document.createElement('span');
         const truncatedName = truncateFilename(file.name);
         label.textContent = truncatedName;
-        if (truncatedName !== file.name) {
-            label.title = file.name;
+
+        let titleText = file.name;
+        if (file.tags && file.tags.length > 0) {
+            titleText += `\nTags: ${file.tags.join(', ')}`;
         }
+        label.title = titleText;
+
         listItem.appendChild(label);
 
         listItem.classList.add('file');
@@ -186,27 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
             event.stopPropagation();
             await loadFile(file.id);
         });
-
-        const tagsContainer = document.createElement('div');
-        tagsContainer.classList.add('file-tags');
-        if (file.tags) {
-            file.tags.forEach(tag => {
-                const tagBadge = document.createElement('span');
-                tagBadge.textContent = tag;
-                tagBadge.classList.add('tag-badge');
-                tagsContainer.appendChild(tagBadge);
-            });
-        }
-        listItem.appendChild(tagsContainer);
-
-        const assignBtn = document.createElement('button');
-        assignBtn.textContent = 'Tags';
-        assignBtn.classList.add('assign-tags-btn');
-        assignBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openAssignTagsModal(file.id);
-        });
-        listItem.appendChild(assignBtn);
 
         return listItem;
     }
