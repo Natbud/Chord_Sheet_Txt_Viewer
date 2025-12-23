@@ -313,11 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
             files.forEach((file, index) => {
                 const li = document.createElement('li');
                 const fileNameSpan = document.createElement('span');
-                fileNameSpan.textContent = truncateFilename(file.name);
+                fileNameSpan.textContent = file.name;
                 li.appendChild(fileNameSpan);
-                if (truncateFilename(file.name) !== file.name) {
-                    li.title = file.name;
-                }
+                li.title = file.name;
                 li.classList.add('file');
                 li.dataset.fileId = file.id;
                 li.draggable = true;
