@@ -312,6 +312,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             files.forEach((file, index) => {
                 const li = document.createElement('li');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.fileIndex = index;
+                li.appendChild(checkbox);
+
                 const fileNameSpan = document.createElement('span');
                 fileNameSpan.textContent = file.name;
                 li.appendChild(fileNameSpan);
@@ -319,22 +325,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.classList.add('file');
                 li.dataset.fileId = file.id;
                 li.draggable = true;
-                li.addEventListener('click', async () => {
-                    await loadFile(file.id);
+                li.addEventListener('click', async (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        await loadFile(file.id);
+                    }
                 });
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = '🗑️';
-                removeBtn.classList.add('remove-from-set-list-btn');
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    removeFileFromSetList(selectedSetListName, index);
-                });
-                li.appendChild(removeBtn);
                 setListFilesContainer.appendChild(li);
             });
         }
     }
-    setListSelect.addEventListener('change', renderSelectedSetListFiles);
+    setListSelect.addEventListener('change', () => {
+        renderSelectedSetListFiles();
+        localStorage.setItem('lastSelectedSetList', setListSelect.value);
+    });
 
     let draggedItem = null;
 
@@ -410,6 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateSetListSelects(listToSelect = null) {
+        const lastSelectedSetList = localStorage.getItem('lastSelectedSetList');
         const currentSetList = setListSelect.value;
         addToSetListSelect.innerHTML = '';
         setListSelect.innerHTML = '';
@@ -433,6 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (listToSelect) {
             setListSelect.value = listToSelect;
+        } else if (lastSelectedSetList && allSetLists[lastSelectedSetList]) {
+            setListSelect.value = lastSelectedSetList;
         } else {
             setListSelect.value = currentSetList;
         }
@@ -607,38 +613,125 @@ document.addEventListener('DOMContentLoaded', () => {
         tagsListContainer.innerHTML = '';
         allTags.forEach(tag => {
             const li = document.createElement('li');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.tagName = tag;
+            li.appendChild(checkbox);
+
             const tagNameSpan = document.createElement('span');
             tagNameSpan.textContent = tag;
             li.appendChild(tagNameSpan);
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = '🗑️';
-            deleteBtn.classList.add('delete-tag-btn');
-            deleteBtn.addEventListener('click', async () => {
-                const files = await getFiles();
-                const isTagInUse = files.some(file => file.tags && file.tags.includes(tag));
-                if (isTagInUse) {
-                    alert(`Tag "${tag}" is currently in use and cannot be deleted.`);
-                    return;
-                }
 
-                if (confirm(`Are you sure you want to delete the tag "${tag}"? This will remove it from all files.`)) {
-                    for (const file of allFiles) {
-                        if (file.tags && file.tags.includes(tag)) {
-                            const newTags = file.tags.filter(t => t !== tag);
-                            await updateFileTags(file.id, newTags);
-                        }
-                    }
-                    allTags = allTags.filter(t => t !== tag);
-                    renderTagsList();
-                    renderFileList();
-                    populateTagFilter();
-                    alert(`Tag "${tag}" deleted.`);
-                }
-            });
-            li.appendChild(deleteBtn);
             tagsListContainer.appendChild(li);
         });
     }
+
+    const setListSelectAllBtn = document.getElementById('set-list-select-all-btn');
+    const setListSelectNoneBtn = document.getElementById('set-list-select-none-btn');
+    const deleteSelectedSetListFilesBtn = document.getElementById('delete-selected-set-list-files-btn');
+
+    setListSelectAllBtn.addEventListener('click', () => {
+        setListFilesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+
+    setListSelectNoneBtn.addEventListener('click', () => {
+        setListFilesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+
+    deleteSelectedSetListFilesBtn.addEventListener('click', async () => {
+        const selectedSetListName = setListSelect.value;
+        if (!selectedSetListName) {
+            alert('Please select a set list.');
+            return;
+        }
+
+        const selectedCheckboxes = setListFilesContainer.querySelectorAll('input[type="checkbox"]:checked');
+        if (selectedCheckboxes.length === 0) {
+            alert('Please select at least one file to delete.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to remove ${selectedCheckboxes.length} file(s) from this set list?`)) {
+            return;
+        }
+
+        const indicesToRemove = Array.from(selectedCheckboxes).map(cb => parseInt(cb.dataset.fileIndex));
+        const currentSetList = allSetLists[selectedSetListName];
+        const newSetList = currentSetList.filter((file, index) => !indicesToRemove.includes(index));
+
+        await saveSetList(selectedSetListName, newSetList);
+        allSetLists[selectedSetListName] = newSetList;
+        renderSelectedSetListFiles();
+    });
+
+    const tagsSelectAllBtn = document.getElementById('tags-select-all-btn');
+    const tagsSelectNoneBtn = document.getElementById('tags-select-none-btn');
+    const deleteSelectedTagsBtn = document.getElementById('delete-selected-tags-btn');
+
+    tagsSelectAllBtn.addEventListener('click', () => {
+        tagsListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+
+    tagsSelectNoneBtn.addEventListener('click', () => {
+        tagsListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+
+    deleteSelectedTagsBtn.addEventListener('click', async () => {
+        const selectedCheckboxes = tagsListContainer.querySelectorAll('input[type="checkbox"]:checked');
+        if (selectedCheckboxes.length === 0) {
+            alert('Please select at least one tag to delete.');
+            return;
+        }
+
+        const tagsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.tagName);
+
+        const files = await getFiles();
+        const tagsInUse = new Set();
+        files.forEach(file => {
+            if (file.tags) {
+                file.tags.forEach(tag => tagsInUse.add(tag));
+            }
+        });
+
+        const deletableTags = tagsToDelete.filter(tag => !tagsInUse.has(tag));
+        const undeletableTags = tagsToDelete.filter(tag => tagsInUse.has(tag));
+
+        if (undeletableTags.length > 0) {
+            alert(`The following tags are in use and cannot be deleted: ${undeletableTags.join(', ')}`);
+        }
+
+        if (deletableTags.length === 0) {
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete the following tags: ${deletableTags.join(', ')}?`)) {
+            return;
+        }
+
+        for (const tag of deletableTags) {
+            for (const file of allFiles) {
+                if (file.tags && file.tags.includes(tag)) {
+                    const newTags = file.tags.filter(t => t !== tag);
+                    await updateFileTags(file.id, newTags);
+                }
+            }
+        }
+
+        allTags = allTags.filter(t => !deletableTags.includes(t));
+        renderTagsList();
+        renderFileList();
+        populateTagFilter();
+        alert(`Deleted tags: ${deletableTags.join(', ')}`);
+    });
 
     const assignTagsModal = document.getElementById('assign-tags-modal');
     const modalTagsList = document.getElementById('modal-tags-list');
