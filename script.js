@@ -291,20 +291,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const setListSelect = document.getElementById('set-list-select');
     const deleteSetListBtn = document.getElementById('delete-set-list-btn');
     const setListFilesContainer = document.getElementById('set-list-files');
-    const importSetListsBtn = document.getElementById('import-set-lists-btn');
-    const exportSetListsBtn = document.getElementById('export-set-lists-btn');
 
-    function getSetLists() {
-        return JSON.parse(localStorage.getItem('setLists')) || {};
-    }
-
-    function saveSetLists(setLists) {
-        localStorage.setItem('setLists', JSON.stringify(setLists));
-    }
-
-    function renderSelectedSetListFiles() {
+    async function renderSelectedSetListFiles() {
         const selectedSetListName = setListSelect.value;
-        const setLists = getSetLists();
+        const setLists = await getSetLists();
         const files = setLists[selectedSetListName] || [];
         setListFilesContainer.innerHTML = '';
         if (files.length === 0) {
@@ -367,10 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    setListFilesContainer.addEventListener('drop', (e) => {
+    setListFilesContainer.addEventListener('drop', async (e) => {
         e.preventDefault();
         const selectedSetListName = setListSelect.value;
-        const setLists = getSetLists();
+        const setLists = await getSetLists();
         const files = setLists[selectedSetListName] || [];
         const newFiles = [];
         const children = Array.from(setListFilesContainer.children);
@@ -381,9 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 newFiles.push(file);
             }
         });
-        setLists[selectedSetListName] = newFiles;
-        saveSetLists(setLists);
-        renderSelectedSetListFiles();
+        await saveSetList(selectedSetListName, newFiles);
+        await renderSelectedSetListFiles();
     });
 
     function getDragAfterElement(container, y) {
@@ -405,17 +394,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }).element;
     }
 
-    function removeFileFromSetList(setListName, fileIndex) {
-        const setLists = getSetLists();
+    async function removeFileFromSetList(setListName, fileIndex) {
+        const setLists = await getSetLists();
         if (setLists[setListName]) {
             setLists[setListName].splice(fileIndex, 1);
-            saveSetLists(setLists);
-            renderSelectedSetListFiles();
+            await saveSetList(setListName, setLists[setListName]);
+            await renderSelectedSetListFiles();
         }
     }
 
-    function populateSetListSelects() {
-        const setLists = getSetLists();
+    async function populateSetListSelects() {
+        const setLists = await getSetLists();
         const currentSetList = setListSelect.value;
         addToSetListSelect.innerHTML = '';
         setListSelect.innerHTML = '';
@@ -440,32 +429,31 @@ document.addEventListener('DOMContentLoaded', () => {
         setListSelect.value = currentSetList;
     }
 
-    function updateUI() {
-        populateSetListSelects();
-        renderSelectedSetListFiles();
+    async function updateUI() {
+        await populateSetListSelects();
+        await renderSelectedSetListFiles();
     }
 
-    createSetListBtn.addEventListener('click', () => {
+    createSetListBtn.addEventListener('click', async () => {
         const name = setListNameInput.value.trim();
         if (!name) {
             alert('Please enter a name for the set list.');
             return;
         }
-        const setLists = getSetLists();
+        const setLists = await getSetLists();
         if (setLists[name]) {
             alert('A set list with this name already exists.');
             return;
         }
-        setLists[name] = [];
-        saveSetLists(setLists);
+        await saveSetList(name, []);
         setListNameInput.value = '';
-        populateSetListSelects();
+        await populateSetListSelects();
         setListSelect.value = name;
-        renderSelectedSetListFiles();
+        await renderSelectedSetListFiles();
         alert('Set list created!');
     });
 
-    addToSetListBtn.addEventListener('click', () => {
+    addToSetListBtn.addEventListener('click', async () => {
         const selectedSetListName = addToSetListSelect.value;
         if (!selectedSetListName) {
             alert('Please select a set list to add files to.');
@@ -476,8 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please select at least one file to add.');
             return;
         }
-        const setLists = getSetLists();
-        const targetSetList = setLists[selectedSetListName];
+        const setLists = await getSetLists();
+        const targetSetList = setLists[selectedSetListName] || [];
         selectedFilesCheckboxes.forEach(checkbox => {
             const file = {
                 id: checkbox.dataset.fileId,
@@ -488,14 +476,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             checkbox.checked = false;
         });
-        saveSetLists(setLists);
+        await saveSetList(selectedSetListName, targetSetList);
         if (setListSelect.value === selectedSetListName) {
-            renderSelectedSetListFiles();
+            await renderSelectedSetListFiles();
         }
         alert(`Added ${selectedFilesCheckboxes.length} file(s) to ${selectedSetListName}.`);
     });
 
-    deleteSetListBtn.addEventListener('click', () => {
+    deleteSetListBtn.addEventListener('click', async () => {
         const name = setListSelect.value;
         if (!name) {
             alert('Please select a set list to delete.');
@@ -504,63 +492,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!confirm(`Are you sure you want to delete the set list "${name}"?`)) {
             return;
         }
-        const setLists = getSetLists();
-        delete setLists[name];
-        saveSetLists(setLists);
-        updateUI();
+        await deleteSetList(name);
+        await updateUI();
         alert('Set list deleted!');
     });
 
-    exportSetListsBtn.addEventListener('click', () => {
-        const setLists = getSetLists();
-        if (Object.keys(setLists).length === 0) {
-            alert('There are no set lists to export.');
-            return;
-        }
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(setLists, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "set-lists.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        alert('Set lists exported successfully!');
-    });
-
-    importSetListsBtn.addEventListener('click', () => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.json';
-        fileInput.onchange = (event) => {
-            const file = event.target.files[0];
-            if (!file) {
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
+    function initializeApp() {
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
                 try {
-                    const importedSetLists = JSON.parse(e.target.result);
-                    const existingSetLists = getSetLists();
-                    const mergedSetLists = { ...existingSetLists,
-                        ...importedSetLists
-                    };
-                    saveSetLists(mergedSetLists);
-                    updateUI();
-                    alert('Set lists imported successfully!');
+                    // User is signed in.
+                    await renderFileList();
+                    await updateUI();
+                    await renderTagsList();
+                    await populateTagFilter();
                 } catch (error) {
-                    alert('Error importing set lists. Please make sure the file is a valid JSON file.');
-                    console.error('Error parsing JSON:', error);
+                    console.error("Error during app initialization:", error);
                 }
-            };
-            reader.readAsText(file);
-        };
-        fileInput.click();
-    });
+            } else {
+                // User is signed out.
+                firebase.auth().signInAnonymously().catch((error) => {
+                    console.error("Error signing in anonymously:", error);
+                });
+            }
+        });
+    }
 
-    renderFileList();
-    updateUI();
-    renderTagsList();
-    populateTagFilter();
+    initializeApp();
 
     const tagFilterSelect = document.getElementById('tag-filter-select');
     tagFilterSelect.addEventListener('change', () => {
