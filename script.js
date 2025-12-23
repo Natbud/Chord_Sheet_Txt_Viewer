@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    let allFiles = [];
+    let allSetLists = {};
+    let allTags = [];
+
     const saveBtn = document.getElementById('save-btn');
     const editor = document.getElementById('editor');
     const settingsIcon = document.getElementById('settings-icon');
@@ -168,10 +172,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 alert('Files imported successfully!');
-                const [refreshedFiles, allTags] = await Promise.all([getFiles(), getTags()]);
-                renderFileList(refreshedFiles);
-                renderTagsList(allTags);
-                populateTagFilter(allTags);
+                [allFiles, allTags] = await Promise.all([getFiles(), getTags()]);
+                renderFileList();
+                renderTagsList();
+                populateTagFilter();
             });
         }
     });
@@ -226,15 +230,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return listItem;
     }
 
-    function renderFileList(files, tagFilter = '') {
+    function renderFileList(tagFilter = '') {
         try {
-            let filteredFiles = files;
+            let filteredFiles = allFiles;
             if (tagFilter) {
-                filteredFiles = files.filter(file => file.tags && file.tags.includes(tagFilter));
+                filteredFiles = allFiles.filter(file => file.tags && file.tags.includes(tagFilter));
             }
             fileListContainer.innerHTML = '';
             const ul = document.createElement('ul');
-            files.forEach(file => {
+            filteredFiles.forEach(file => {
                 ul.appendChild(createFileListItem(file));
             });
             fileListContainer.appendChild(ul);
@@ -293,9 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteSetListBtn = document.getElementById('delete-set-list-btn');
     const setListFilesContainer = document.getElementById('set-list-files');
 
-    function renderSelectedSetListFiles(setLists) {
+    function renderSelectedSetListFiles() {
         const selectedSetListName = setListSelect.value;
-        const files = setLists[selectedSetListName] || [];
+        const files = allSetLists[selectedSetListName] || [];
         setListFilesContainer.innerHTML = '';
         if (files.length === 0) {
             const li = document.createElement('li');
@@ -360,8 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setListFilesContainer.addEventListener('drop', async (e) => {
         e.preventDefault();
         const selectedSetListName = setListSelect.value;
-        const setLists = await getSetLists();
-        const files = setLists[selectedSetListName] || [];
+        const files = allSetLists[selectedSetListName] || [];
         const newFiles = [];
         const children = Array.from(setListFilesContainer.children);
         children.forEach(child => {
@@ -372,7 +375,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         await saveSetList(selectedSetListName, newFiles);
-        await renderSelectedSetListFiles();
+        allSetLists[selectedSetListName] = newFiles;
+        renderSelectedSetListFiles();
     });
 
     function getDragAfterElement(container, y) {
@@ -395,15 +399,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function removeFileFromSetList(setListName, fileIndex) {
-        const setLists = await getSetLists();
-        if (setLists[setListName]) {
-            setLists[setListName].splice(fileIndex, 1);
-            await saveSetList(setListName, setLists[setListName]);
-            renderSelectedSetListFiles(setLists);
+        if (allSetLists[setListName]) {
+            allSetLists[setListName].splice(fileIndex, 1);
+            await saveSetList(setListName, allSetLists[setListName]);
+            renderSelectedSetListFiles();
         }
     }
 
-    function populateSetListSelects(setLists, listToSelect = null) {
+    function populateSetListSelects(listToSelect = null) {
         const currentSetList = setListSelect.value;
         addToSetListSelect.innerHTML = '';
         setListSelect.innerHTML = '';
@@ -411,13 +414,13 @@ document.addEventListener('DOMContentLoaded', () => {
         noListOptionForAdd.value = "";
         noListOptionForAdd.textContent = "Select a set list";
         addToSetListSelect.appendChild(noListOptionForAdd);
-        if (Object.keys(setLists).length === 0) {
+        if (Object.keys(allSetLists).length === 0) {
             const option = document.createElement('option');
             option.textContent = 'No set lists created';
             option.disabled = true;
             setListSelect.appendChild(option);
         } else {
-            for (const name in setLists) {
+            for (const name in allSetLists) {
                 const option = document.createElement('option');
                 option.value = name;
                 option.textContent = name;
@@ -443,16 +446,15 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please enter a name for the set list.');
             return;
         }
-        const setLists = await getSetLists();
-        if (setLists[name]) {
+        if (allSetLists[name]) {
             alert('A set list with this name already exists.');
             return;
         }
         await saveSetList(name, []);
-        setLists[name] = [];
+        allSetLists[name] = [];
         setListNameInput.value = '';
-        populateSetListSelects(setLists, name);
-        renderSelectedSetListFiles(setLists);
+        populateSetListSelects(name);
+        renderSelectedSetListFiles();
         alert('Set list created!');
     });
 
@@ -467,8 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please select at least one file to add.');
             return;
         }
-        const setLists = await getSetLists();
-        const targetSetList = setLists[selectedSetListName] || [];
+        const targetSetList = allSetLists[selectedSetListName] || [];
         selectedFilesCheckboxes.forEach(checkbox => {
             const file = {
                 id: checkbox.dataset.fileId,
@@ -480,9 +481,9 @@ document.addEventListener('DOMContentLoaded', () => {
             checkbox.checked = false;
         });
         await saveSetList(selectedSetListName, targetSetList);
+        allSetLists[selectedSetListName] = targetSetList;
         if (setListSelect.value === selectedSetListName) {
-            const setLists = await getSetLists();
-            renderSelectedSetListFiles(setLists);
+            renderSelectedSetListFiles();
         }
         alert(`Added ${selectedFilesCheckboxes.length} file(s) to ${selectedSetListName}.`);
     });
@@ -497,9 +498,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         await deleteSetList(name);
-        const setLists = await getSetLists();
-        populateSetListSelects(setLists);
-        renderSelectedSetListFiles(setLists);
+        delete allSetLists[name];
+        populateSetListSelects();
+        renderSelectedSetListFiles();
         alert('Set list deleted!');
     });
 
@@ -507,17 +508,17 @@ document.addEventListener('DOMContentLoaded', () => {
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
                 try {
-                    const [files, setLists, tags] = await Promise.all([
+                    [allFiles, allSetLists, allTags] = await Promise.all([
                         getFiles(),
                         getSetLists(),
                         getTags()
                     ]);
 
-                    renderFileList(files);
-                    populateSetListSelects(setLists);
-                    renderSelectedSetListFiles(setLists);
-                    renderTagsList(tags);
-                    populateTagFilter(tags);
+                    renderFileList();
+                    populateSetListSelects();
+                    renderSelectedSetListFiles();
+                    renderTagsList();
+                    populateTagFilter();
                 } catch (error) {
                     console.error("Error during app initialization:", error);
                 }
@@ -536,10 +537,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderFileList(tagFilterSelect.value);
     });
 
-    function populateTagFilter(tags) {
+    function populateTagFilter() {
         const currentFilter = tagFilterSelect.value;
         tagFilterSelect.innerHTML = '<option value="">All Tags</option>';
-        tags.forEach(tag => {
+        allTags.forEach(tag => {
             const option = document.createElement('option');
             option.value = tag;
             option.textContent = tag;
@@ -593,15 +594,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         alert('Selected files deleted successfully!');
-        await renderFileList();
+        allFiles = await getFiles();
+        renderFileList();
     });
 
     const tagsListContainer = document.getElementById('tags-list');
 
-    async function renderTagsList() {
-        const tags = await getTags();
+    function renderTagsList() {
         tagsListContainer.innerHTML = '';
-        tags.forEach(tag => {
+        allTags.forEach(tag => {
             const li = document.createElement('li');
             li.textContent = tag;
             const deleteBtn = document.createElement('button');
@@ -616,15 +617,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (confirm(`Are you sure you want to delete the tag "${tag}"? This will remove it from all files.`)) {
-                    for (const file of files) {
+                    for (const file of allFiles) {
                         if (file.tags && file.tags.includes(tag)) {
                             const newTags = file.tags.filter(t => t !== tag);
                             await updateFileTags(file.id, newTags);
                         }
                     }
-                    await renderTagsList();
-                    await renderFileList();
-                    await populateTagFilter();
+                    allTags = allTags.filter(t => t !== tag);
+                    renderTagsList();
+                    renderFileList();
+                    populateTagFilter();
                     alert(`Tag "${tag}" deleted.`);
                 }
             });
@@ -652,12 +654,10 @@ document.addEventListener('DOMContentLoaded', () => {
             currentFileIdsForTags = fileIds;
         }
         onSaveCallback = onSave;
-        const allTags = await getTags();
         let fileTags = [];
 
         if (currentFileIdsForTags.length > 0) {
-            const files = await getFiles();
-            const selectedFiles = files.filter(f => currentFileIdsForTags.includes(f.id));
+            const selectedFiles = allFiles.filter(f => currentFileIdsForTags.includes(f.id));
 
             if (selectedFiles.length > 0) {
                 // Find intersection of tags for multiple files
@@ -708,9 +708,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (onSaveCallback) {
             onSaveCallback(selectedTags);
         } else if (currentFileIdsForTags && currentFileIdsForTags.length > 0) {
-            const files = await getFiles();
             for (const fileId of currentFileIdsForTags) {
-                const file = files.find(f => f.id === fileId);
+                const file = allFiles.find(f => f.id === fileId);
                 if (file) {
                     let newTags;
                     if (add) {
@@ -719,11 +718,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         newTags = (file.tags || []).filter(tag => !selectedTags.includes(tag));
                     }
                     await updateFileTags(fileId, newTags);
+                    file.tags = newTags;
                 }
             }
-            await renderFileList();
-            await renderTagsList();
-            await populateTagFilter();
+            allTags = [...new Set([...allTags, ...selectedTags])];
+            renderFileList();
+            renderTagsList();
+            populateTagFilter();
         }
         closeAssignTagsModal();
     }
