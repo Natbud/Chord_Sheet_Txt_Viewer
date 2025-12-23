@@ -645,41 +645,91 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const tagsListContainer = document.getElementById('tags-list');
+    const tagCheckAllBtn = document.getElementById('tag-check-all-btn');
+    const tagUncheckAllBtn = document.getElementById('tag-uncheck-all-btn');
+    const tagDeleteSelectedBtn = document.getElementById('tag-delete-selected-btn');
 
     function renderTagsList() {
         tagsListContainer.innerHTML = '';
         allTags.forEach(tag => {
             const li = document.createElement('li');
-            li.textContent = tag;
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'x';
-            deleteBtn.classList.add('delete-tag-btn');
-            deleteBtn.addEventListener('click', async () => {
-                const files = await getFiles();
-                const isTagInUse = files.some(file => file.tags && file.tags.includes(tag));
-                if (isTagInUse) {
-                    alert(`Tag "${tag}" is currently in use and cannot be deleted.`);
-                    return;
-                }
 
-                if (confirm(`Are you sure you want to delete the tag "${tag}"? This will remove it from all files.`)) {
-                    for (const file of allFiles) {
-                        if (file.tags && file.tags.includes(tag)) {
-                            const newTags = file.tags.filter(t => t !== tag);
-                            await updateFileTags(file.id, newTags);
-                        }
-                    }
-                    allTags = allTags.filter(t => t !== tag);
-                    renderTagsList();
-                    renderFileList();
-                    populateTagFilter();
-                    alert(`Tag "${tag}" deleted.`);
-                }
-            });
-            li.appendChild(deleteBtn);
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.tagName = tag;
+            checkbox.addEventListener('click', (e) => e.stopPropagation());
+            li.appendChild(checkbox);
+
+            const label = document.createElement('span');
+            label.textContent = tag;
+            li.appendChild(label);
+
             tagsListContainer.appendChild(li);
         });
     }
+
+    tagCheckAllBtn.addEventListener('click', () => {
+        tagsListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+
+    tagUncheckAllBtn.addEventListener('click', () => {
+        tagsListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+
+    tagDeleteSelectedBtn.addEventListener('click', async () => {
+        const checkedBoxes = tagsListContainer.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkedBoxes.length === 0) {
+            alert('Please select at least one tag to delete.');
+            return;
+        }
+
+        const tagsToDelete = Array.from(checkedBoxes).map(cb => cb.dataset.tagName);
+
+        // Safety check: ensure none of the selected tags are in use
+        const files = await getFiles();
+        const tagsInUse = new Set();
+        files.forEach(file => {
+            if (file.tags) {
+                file.tags.forEach(tag => tagsInUse.add(tag));
+            }
+        });
+
+        const deletableTags = [];
+        const protectedTags = [];
+        tagsToDelete.forEach(tag => {
+            if (tagsInUse.has(tag)) {
+                protectedTags.push(tag);
+            } else {
+                deletableTags.push(tag);
+            }
+        });
+
+        if (protectedTags.length > 0) {
+            alert(`The following tags are currently in use and cannot be deleted:\n\n- ${protectedTags.join('\n- ')}`);
+        }
+
+        if (deletableTags.length === 0) {
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete the following ${deletableTags.length} tag(s)?\n\n- ${deletableTags.join('\n- ')}`)) {
+            return;
+        }
+
+        // Filter out the tags to be deleted from the global list
+        allTags = allTags.filter(tag => !deletableTags.includes(tag));
+
+        // Note: Since we've confirmed these tags aren't in use, we don't need to iterate through all files to remove them.
+        // They only exist in the `allTags` array.
+
+        renderTagsList();
+        populateTagFilter(); // Refresh the filter dropdown
+        alert('Selected tags deleted successfully!');
+    });
 
     const assignTagsModal = document.getElementById('assign-tags-modal');
     const modalTagsList = document.getElementById('modal-tags-list');
