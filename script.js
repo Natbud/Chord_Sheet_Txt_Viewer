@@ -321,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 li.classList.add('file');
                 li.dataset.fileId = file.id;
+                li.draggable = true;
                 li.addEventListener('click', async () => {
                     await loadFile(file.id);
                 });
@@ -337,6 +338,72 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     setListSelect.addEventListener('change', renderSelectedSetListFiles);
+
+    let draggedItem = null;
+
+    setListFilesContainer.addEventListener('dragstart', (e) => {
+        draggedItem = e.target;
+        setTimeout(() => {
+            e.target.classList.add('dragging');
+        }, 0);
+    });
+
+    setListFilesContainer.addEventListener('dragend', (e) => {
+        if (draggedItem) {
+            draggedItem.classList.remove('dragging');
+        }
+    });
+
+    setListFilesContainer.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(setListFilesContainer, e.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (dragging) {
+            if (afterElement == null) {
+                setListFilesContainer.appendChild(dragging);
+            } else {
+                setListFilesContainer.insertBefore(dragging, afterElement);
+            }
+        }
+    });
+
+    setListFilesContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const selectedSetListName = setListSelect.value;
+        const setLists = getSetLists();
+        const files = setLists[selectedSetListName] || [];
+        const newFiles = [];
+        const children = Array.from(setListFilesContainer.children);
+        children.forEach(child => {
+            const fileId = child.dataset.fileId;
+            const file = files.find(f => f.id === fileId);
+            if (file) {
+                newFiles.push(file);
+            }
+        });
+        setLists[selectedSetListName] = newFiles;
+        saveSetLists(setLists);
+        renderSelectedSetListFiles();
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return {
+                    offset: offset,
+                    element: child
+                };
+            } else {
+                return closest;
+            }
+        }, {
+            offset: Number.NEGATIVE_INFINITY
+        }).element;
+    }
 
     function removeFileFromSetList(setListName, fileIndex) {
         const setLists = getSetLists();
