@@ -375,6 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const addToSetListSelect = document.getElementById('add-to-set-list-select');
     const addToSetListBtn = document.getElementById('add-to-set-list-btn');
     const setListSelect = document.getElementById('set-list-select');
+    const addToSetListModal = document.getElementById('add-to-set-list-modal');
+    const modalAddToSetListBtn = document.getElementById('modal-add-to-set-list-btn');
+    const addToSetListModalCloseBtn = addToSetListModal.querySelector('.close-button');
     const deleteSetListBtn = document.getElementById('delete-set-list-btn');
     const setListFilesContainer = document.getElementById('set-list-files');
     const setListCheckAllBtn = document.getElementById('set-list-check-all-btn');
@@ -582,17 +585,22 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Set list created!');
     });
 
-    addToSetListBtn.addEventListener('click', async () => {
+    addToSetListBtn.addEventListener('click', () => {
+        const selectedFilesCheckboxes = fileListContainer.querySelectorAll('li input[type="checkbox"]:checked');
+        if (selectedFilesCheckboxes.length === 0) {
+            alert('Please select at least one file to add.');
+            return;
+        }
+        addToSetListModal.style.display = 'block';
+    });
+
+    modalAddToSetListBtn.addEventListener('click', async () => {
         const selectedSetListName = addToSetListSelect.value;
         if (!selectedSetListName) {
             alert('Please select a set list to add files to.');
             return;
         }
         const selectedFilesCheckboxes = fileListContainer.querySelectorAll('li input[type="checkbox"]:checked');
-        if (selectedFilesCheckboxes.length === 0) {
-            alert('Please select at least one file to add.');
-            return;
-        }
         const targetSetList = allSetLists[selectedSetListName] || [];
         selectedFilesCheckboxes.forEach(checkbox => {
             const file = {
@@ -609,7 +617,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (setListSelect.value === selectedSetListName) {
             renderSelectedSetListFiles();
         }
+        addToSetListModal.style.display = 'none';
         alert(`Added ${selectedFilesCheckboxes.length} file(s) to ${selectedSetListName}.`);
+    });
+
+    addToSetListModalCloseBtn.addEventListener('click', () => {
+        addToSetListModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == addToSetListModal) {
+            addToSetListModal.style.display = 'none';
+        }
     });
 
     deleteSetListBtn.addEventListener('click', async () => {

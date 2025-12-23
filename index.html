@@ -27,18 +27,15 @@
                         <button id="select-all-btn">Select All</button>
                         <button id="select-none-btn">Select None</button>
                         <button id="delete-selected-btn">Delete Selected</button>
-                        <button id="manage-tags-btn">Manage Tags</button>
+                        <button id="manage-tags-btn">Tag Selected</button>
                         <button id="export-selected-btn">Export Selected</button>
+                        <button id="add-to-set-list-btn">Add Selected to Set List</button>
                     </div>
                     <div id="filter-container">
                         <label for="tag-filter-select">Tag Filter</label>
                         <select id="tag-filter-select">
                             <option value="">All Tags</option>
                         </select>
-                    </div>
-                    <div id="add-to-set-list-container">
-                        <select id="add-to-set-list-select"></select>
-                        <button id="add-to-set-list-btn">Add to Set List</button>
                     </div>
                     <ul id="file-list"></ul>
                 </div>
@@ -148,6 +145,15 @@
             <button id="modal-add-tags-btn">Add Tags</button>
             <button id="modal-remove-tags-btn">Remove Tags</button>
             <button id="modal-close-tags-btn">Close</button>
+        </div>
+    </div>
+    <div id="add-to-set-list-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Add to Set List</h2>
+            <p>Select a set list to add the selected files to.</p>
+            <select id="add-to-set-list-select"></select>
+            <button id="modal-add-to-set-list-btn">Add</button>
         </div>
     </div>
 </body>
