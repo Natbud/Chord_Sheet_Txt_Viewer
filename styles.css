@@ -281,6 +281,8 @@ textarea {
     color: #f1f1f1;
 }
 
+#back-btn,
+#forward-btn,
 #increase-font-size-btn,
 #decrease-font-size-btn,
 #toggle-fullscreen-btn,
@@ -429,6 +431,16 @@ textarea {
     align-items: center;
     padding: 5px;
     border-bottom: 1px solid #eee;
+}
+
+#new-tag-container {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+#new-tag-container input {
+    flex-grow: 1;
+    margin-right: 10px;
 }
 
 .delete-tag-btn {

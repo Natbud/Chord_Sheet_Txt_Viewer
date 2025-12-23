@@ -157,6 +157,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let currentFileId = null;
+    let currentSetListIndex = -1;
+
+    const backBtn = document.getElementById('back-btn');
+    const forwardBtn = document.getElementById('forward-btn');
+
+    backBtn.addEventListener('click', () => {
+        navigateSetList(-1);
+    });
+
+    forwardBtn.addEventListener('click', () => {
+        navigateSetList(1);
+    });
+
+    function navigateSetList(direction) {
+        const selectedSetListName = setListSelect.value;
+        if (!selectedSetListName || !allSetLists[selectedSetListName]) {
+            return;
+        }
+
+        const currentSetList = allSetLists[selectedSetListName];
+        if (currentSetList.length === 0) {
+            return;
+        }
+
+        if (currentSetListIndex === -1) {
+            currentSetListIndex = currentSetList.findIndex(file => file.id === currentFileId);
+        }
+
+        currentSetListIndex += direction;
+
+        if (currentSetListIndex < 0) {
+            currentSetListIndex = currentSetList.length - 1;
+        } else if (currentSetListIndex >= currentSetList.length) {
+            currentSetListIndex = 0;
+        }
+
+        const nextFile = currentSetList[currentSetListIndex];
+        if (nextFile) {
+            loadFile(nextFile.id);
+        }
+    }
 
     importFilesBtn.addEventListener('click', () => {
         fileInput.click();
@@ -256,6 +297,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const content = await getFileContent(fileId);
             editor.value = content;
             currentFileId = fileId;
+            const selectedSetListName = setListSelect.value;
+            if (selectedSetListName && allSetLists[selectedSetListName]) {
+                currentSetListIndex = allSetLists[selectedSetListName].findIndex(file => file.id === fileId);
+            } else {
+                currentSetListIndex = -1;
+            }
         } catch (error) {
             console.error('Error loading file:', error);
             editor.value = `Error loading file: ${fileId}`;
@@ -678,6 +725,24 @@ document.addEventListener('DOMContentLoaded', () => {
         tagsListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
             checkbox.checked = false;
         });
+    });
+
+    const createNewTagBtn = document.getElementById('create-new-tag-btn');
+    const newTagNameInput = document.getElementById('new-tag-name');
+
+    createNewTagBtn.addEventListener('click', () => {
+        const newTagName = newTagNameInput.value.trim();
+        if (newTagName) {
+            if (!allTags.includes(newTagName)) {
+                allTags.push(newTagName);
+                allTags.sort();
+                renderTagsList();
+                populateTagFilter();
+                newTagNameInput.value = '';
+            } else {
+                alert('Tag already exists.');
+            }
+        }
     });
 
     tagDeleteSelectedBtn.addEventListener('click', async () => {
