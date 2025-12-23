@@ -378,6 +378,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const addToSetListModal = document.getElementById('add-to-set-list-modal');
     const modalAddToSetListBtn = document.getElementById('modal-add-to-set-list-btn');
     const addToSetListModalCloseBtn = addToSetListModal.querySelector('.close-button');
+    const manageSetListsBtn = document.getElementById('manage-set-lists-btn');
+    const manageSetListsModal = document.getElementById('manage-set-lists-modal');
+    const manageSetListsModalCloseBtn = manageSetListsModal.querySelector('.close-button');
+    const deleteSetListSelect = document.getElementById('delete-set-list-select');
     const deleteSetListBtn = document.getElementById('delete-set-list-btn');
     const setListFilesContainer = document.getElementById('set-list-files');
     const setListCheckAllBtn = document.getElementById('set-list-check-all-btn');
@@ -537,6 +541,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentSetList = setListSelect.value;
         addToSetListSelect.innerHTML = '';
         setListSelect.innerHTML = '';
+        deleteSetListSelect.innerHTML = '';
+
         const noListOptionForAdd = document.createElement('option');
         noListOptionForAdd.value = "";
         noListOptionForAdd.textContent = "Select a set list";
@@ -552,7 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.value = name;
                 option.textContent = name;
                 addToSetListSelect.appendChild(option.cloneNode(true));
-                setListSelect.appendChild(option);
+                setListSelect.appendChild(option.cloneNode(true));
+                deleteSetListSelect.appendChild(option);
             }
         }
         if (listToSelect) {
@@ -583,6 +590,21 @@ document.addEventListener('DOMContentLoaded', () => {
         populateSetListSelects(name);
         renderSelectedSetListFiles();
         alert('Set list created!');
+        manageSetListsModal.style.display = 'none';
+    });
+
+    manageSetListsBtn.addEventListener('click', () => {
+        manageSetListsModal.style.display = 'block';
+    });
+
+    manageSetListsModalCloseBtn.addEventListener('click', () => {
+        manageSetListsModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == manageSetListsModal) {
+            manageSetListsModal.style.display = 'none';
+        }
     });
 
     addToSetListBtn.addEventListener('click', () => {
@@ -632,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     deleteSetListBtn.addEventListener('click', async () => {
-        const name = setListSelect.value;
+        const name = deleteSetListSelect.value;
         if (!name) {
             alert('Please select a set list to delete.');
             return;
@@ -645,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
         populateSetListSelects();
         renderSelectedSetListFiles();
         alert('Set list deleted!');
+        manageSetListsModal.style.display = 'none';
     });
 
     async function initializeApp() {

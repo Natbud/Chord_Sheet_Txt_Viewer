@@ -40,12 +40,10 @@
                     <ul id="file-list"></ul>
                 </div>
                 <div id="set-lists-content" class="tab-content">
-                    <input type="text" id="set-list-name" placeholder="New set list name">
-                    <button id="create-set-list-btn">Create</button>
+                    <button id="manage-set-lists-btn">Manage Set Lists</button>
                     <hr>
                     <label for="set-list-select">Select Set List:</label>
                     <select id="set-list-select"></select>
-                    <button id="delete-set-list-btn">Delete Set List</button>
                     <hr>
                     <div id="set-list-actions">
                         <button id="set-list-check-all-btn">Check All</button>
@@ -154,6 +152,18 @@
             <p>Select a set list to add the selected files to.</p>
             <select id="add-to-set-list-select"></select>
             <button id="modal-add-to-set-list-btn">Add</button>
+        </div>
+    </div>
+    <div id="manage-set-lists-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Manage Set Lists</h2>
+            <input type="text" id="set-list-name" placeholder="New set list name">
+            <button id="create-set-list-btn">Create</button>
+            <hr>
+            <p>Select a set list to delete:</p>
+            <select id="delete-set-list-select"></select>
+            <button id="delete-set-list-btn">Delete</button>
         </div>
     </div>
 </body>

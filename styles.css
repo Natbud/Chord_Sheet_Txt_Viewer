@@ -499,6 +499,15 @@ textarea {
     max-width: 400px;
 }
 
+#manage-set-lists-modal input,
+#manage-set-lists-modal select,
+#manage-set-lists-modal button {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
 #modal-tags-list {
     display: flex;
     flex-wrap: wrap;
