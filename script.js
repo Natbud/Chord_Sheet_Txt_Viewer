@@ -149,7 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isResizing) return;
         const newWidth = e.clientX;
         if (newWidth > 100 && newWidth < 500) {
-            fileBrowser.style.width = `${newWidth}px`;
+            document.documentElement.style.setProperty('--file-browser-width', `${newWidth}px`);
+            if (fileBrowser.classList.contains('collapsed')) {
+                fileBrowser.classList.remove('collapsed');
+            }
         }
     }
 

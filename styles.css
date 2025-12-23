@@ -40,8 +40,12 @@ h1 {
     overflow: hidden;
 }
 
+:root {
+    --file-browser-width: 250px;
+}
+
 #file-browser {
-    width: 250px;
+    width: var(--file-browser-width);
     flex-shrink: 0;
     border-right: 1px solid #ccc;
     padding-right: 20px;
@@ -63,8 +67,12 @@ h1 {
 }
 
 #file-browser.collapsed {
-    width: 40px;
+    --file-browser-width: 40px;
     padding-right: 0;
+}
+
+#file-browser.collapsed + #resizer {
+    display: none;
 }
 
 #file-browser.collapsed > *:not(#toggle-sidebar-btn) {
