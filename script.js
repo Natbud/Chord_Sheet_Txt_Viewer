@@ -299,6 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const setListSelect = document.getElementById('set-list-select');
     const deleteSetListBtn = document.getElementById('delete-set-list-btn');
     const setListFilesContainer = document.getElementById('set-list-files');
+    const setListCheckAllBtn = document.getElementById('set-list-check-all-btn');
+    const setListUncheckAllBtn = document.getElementById('set-list-uncheck-all-btn');
+    const setListDeleteSelectedBtn = document.getElementById('set-list-delete-selected-btn');
 
     function renderSelectedSetListFiles() {
         const selectedSetListName = setListSelect.value;
@@ -312,24 +315,26 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             files.forEach((file, index) => {
                 const li = document.createElement('li');
-                li.textContent = truncateFilename(file.name);
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.fileIndex = index;
+                li.appendChild(checkbox);
+
+                const label = document.createElement('span');
+                label.textContent = truncateFilename(file.name);
                 if (truncateFilename(file.name) !== file.name) {
-                    li.title = file.name;
+                    label.title = file.name;
                 }
+                li.appendChild(label);
+
                 li.classList.add('file');
                 li.dataset.fileId = file.id;
                 li.draggable = true;
                 li.addEventListener('click', async () => {
                     await loadFile(file.id);
                 });
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = 'x';
-                removeBtn.classList.add('remove-from-set-list-btn');
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    removeFileFromSetList(selectedSetListName, index);
-                });
-                li.appendChild(removeBtn);
+
                 setListFilesContainer.appendChild(li);
             });
         }
@@ -401,13 +406,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }).element;
     }
 
-    async function removeFileFromSetList(setListName, fileIndex) {
-        if (allSetLists[setListName]) {
-            allSetLists[setListName].splice(fileIndex, 1);
-            await saveSetList(setListName, allSetLists[setListName]);
-            renderSelectedSetListFiles();
+    setListCheckAllBtn.addEventListener('click', () => {
+        setListFilesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+
+    setListUncheckAllBtn.addEventListener('click', () => {
+        setListFilesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+
+    setListDeleteSelectedBtn.addEventListener('click', async () => {
+        const selectedSetListName = setListSelect.value;
+        if (!selectedSetListName) {
+            alert('Please select a set list.');
+            return;
         }
-    }
+
+        const checkedBoxes = setListFilesContainer.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkedBoxes.length === 0) {
+            alert('Please select files to delete.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to remove ${checkedBoxes.length} file(s) from this set list?`)) {
+            return;
+        }
+
+        const indicesToRemove = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.fileIndex, 10));
+
+        // Sort indices in descending order to avoid issues with splicing
+        indicesToRemove.sort((a, b) => b - a);
+
+        const currentSetList = allSetLists[selectedSetListName];
+        for (const index of indicesToRemove) {
+            currentSetList.splice(index, 1);
+        }
+
+        await saveSetList(selectedSetListName, currentSetList);
+        allSetLists[selectedSetListName] = currentSetList;
+        renderSelectedSetListFiles();
+        alert('Selected files removed from the set list.');
+    });
 
     function populateSetListSelects(listToSelect = null) {
         const currentSetList = setListSelect.value;

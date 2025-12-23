@@ -347,8 +347,23 @@ textarea {
     box-sizing: border-box;
 }
 
-#set-list-files li {
+#set-list-actions {
+    display: flex;
     justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+#set-list-actions button {
+    width: 32%;
+    padding: 8px;
+}
+
+#set-list-files li {
+    justify-content: flex-start;
+}
+
+#set-list-files li input[type="checkbox"] {
+    margin-right: 10px;
 }
 
 #set-list-files li.dragging {
