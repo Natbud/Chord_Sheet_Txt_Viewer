@@ -686,12 +686,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        for (const checkbox of selectedFilesCheckboxes) {
+        if (selectedFilesCheckboxes.length === 1) {
+            // If only one file is selected, download it directly
+            const checkbox = selectedFilesCheckboxes[0];
             const fileId = checkbox.dataset.fileId;
             const fileName = checkbox.dataset.fileName;
             try {
                 const content = await getFileContent(fileId);
-                const blob = new Blob([content], { type: 'text/plain' });
+                const blob = new Blob([content], {
+                    type: 'text/plain'
+                });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
                 a.download = fileName;
@@ -702,6 +706,36 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error(`Error exporting file ${fileName}:`, error);
                 alert(`Could not export ${fileName}. See console for details.`);
+            }
+        } else {
+            // If multiple files are selected, create a zip
+            const zip = new JSZip();
+            for (const checkbox of selectedFilesCheckboxes) {
+                const fileId = checkbox.dataset.fileId;
+                const fileName = checkbox.dataset.fileName;
+                try {
+                    const content = await getFileContent(fileId);
+                    zip.file(fileName, content);
+                } catch (error) {
+                    console.error(`Error adding file ${fileName} to zip:`, error);
+                    alert(`Could not add ${fileName} to the zip file. See console for details.`);
+                }
+            }
+
+            try {
+                const zipContent = await zip.generateAsync({
+                    type: "blob"
+                });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(zipContent);
+                a.download = 'exported_files.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (error) {
+                console.error('Error generating zip file:', error);
+                alert('Could not generate the zip file. See console for details.');
             }
         }
     });
