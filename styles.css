@@ -406,7 +406,6 @@ textarea {
 
 #tags-list li {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 5px;
     border-bottom: 1px solid #eee;

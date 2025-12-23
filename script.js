@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.appendChild(checkbox);
 
                 const fileNameSpan = document.createElement('span');
-                fileNameSpan.textContent = file.name;
+                fileNameSpan.textContent = truncateFilename(file.name);
                 li.appendChild(fileNameSpan);
                 li.title = file.name;
                 li.classList.add('file');
@@ -620,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.appendChild(checkbox);
 
             const tagNameSpan = document.createElement('span');
-            tagNameSpan.textContent = tag;
+            tagNameSpan.textContent = truncateFilename(tag);
             li.appendChild(tagNameSpan);
 
             tagsListContainer.appendChild(li);
@@ -694,43 +694,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const tagsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.tagName);
 
-        const files = await getFiles();
-        const tagsInUse = new Set();
-        files.forEach(file => {
-            if (file.tags) {
-                file.tags.forEach(tag => tagsInUse.add(tag));
-            }
-        });
-
-        const deletableTags = tagsToDelete.filter(tag => !tagsInUse.has(tag));
-        const undeletableTags = tagsToDelete.filter(tag => tagsInUse.has(tag));
-
-        if (undeletableTags.length > 0) {
-            alert(`The following tags are in use and cannot be deleted: ${undeletableTags.join(', ')}`);
-        }
-
-        if (deletableTags.length === 0) {
+        if (!confirm(`Are you sure you want to delete the following tags: ${tagsToDelete.join(', ')}? This will remove them from all files.`)) {
             return;
         }
 
-        if (!confirm(`Are you sure you want to delete the following tags: ${deletableTags.join(', ')}?`)) {
-            return;
-        }
-
-        for (const tag of deletableTags) {
+        for (const tag of tagsToDelete) {
             for (const file of allFiles) {
                 if (file.tags && file.tags.includes(tag)) {
                     const newTags = file.tags.filter(t => t !== tag);
                     await updateFileTags(file.id, newTags);
+                    file.tags = newTags; // Update local cache
                 }
             }
         }
 
-        allTags = allTags.filter(t => !deletableTags.includes(t));
+        allTags = allTags.filter(t => !tagsToDelete.includes(t));
         renderTagsList();
         renderFileList();
         populateTagFilter();
-        alert(`Deleted tags: ${deletableTags.join(', ')}`);
+        alert(`Deleted tags: ${tagsToDelete.join(', ')}`);
     });
 
     const assignTagsModal = document.getElementById('assign-tags-modal');
