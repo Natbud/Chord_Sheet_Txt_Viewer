@@ -29,17 +29,20 @@ function uploadFile(file, tags = []) {
  * @returns {Promise<Object[]>} A promise that resolves with an array of file objects.
  */
 function getFiles() {
-  const filesRef = firebase.database().ref('files');
-  return filesRef.once('value').then((snapshot) => {
-    const files = [];
-    snapshot.forEach((childSnapshot) => {
-      files.push({
-        id: childSnapshot.key,
-        ...childSnapshot.val()
-      });
+    const filesRef = firebase.database().ref('files');
+    return filesRef.once('value').then((snapshot) => {
+        const files = [];
+        snapshot.forEach((childSnapshot) => {
+            const fileData = childSnapshot.val();
+            if (fileData && typeof fileData === 'object' && fileData.name) {
+                files.push({
+                    id: childSnapshot.key,
+                    ...fileData
+                });
+            }
+        });
+        return files;
     });
-    return files;
-  });
 }
 
 /**
@@ -88,6 +91,19 @@ async function getTags() {
         }
     });
     return Array.from(allTags).sort();
+}
+
+async function getSetLists() {
+    const snapshot = await firebase.database().ref('setlists').once('value');
+    return snapshot.val() || {};
+}
+
+async function saveSetList(name, files) {
+    await firebase.database().ref(`setlists/${name}`).set(files);
+}
+
+async function deleteSetList(name) {
+    await firebase.database().ref(`setlists/${name}`).remove();
 }
 
 /**
