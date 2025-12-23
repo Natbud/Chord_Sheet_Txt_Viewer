@@ -168,10 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 alert('Files imported successfully!');
-                const [files, tags] = await Promise.all([getFiles(), getTags()]);
-                renderFileList(files);
-                renderTagsList(tags);
-                populateTagFilter(tags);
+                const [refreshedFiles, allTags] = await Promise.all([getFiles(), getTags()]);
+                renderFileList(refreshedFiles);
+                renderTagsList(allTags);
+                populateTagFilter(allTags);
             });
         }
     });
