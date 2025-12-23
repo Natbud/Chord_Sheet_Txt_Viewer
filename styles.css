@@ -363,10 +363,6 @@ textarea {
     padding: 8px;
 }
 
-#set-list-files li {
-    justify-content: flex-start;
-}
-
 #set-list-files li input[type="checkbox"] {
     margin-right: 10px;
 }
