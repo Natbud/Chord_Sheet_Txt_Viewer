@@ -319,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.dataset.fileIndex = index;
+                checkbox.addEventListener('click', (e) => e.stopPropagation());
                 li.appendChild(checkbox);
 
                 const label = document.createElement('span');
