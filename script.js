@@ -403,8 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function populateSetListSelects() {
-        const setLists = await getSetLists();
+    async function populateSetListSelects(setListsData = null, listToSelect = null) {
+        const setLists = setListsData || await getSetLists();
         const currentSetList = setListSelect.value;
         addToSetListSelect.innerHTML = '';
         setListSelect.innerHTML = '';
@@ -426,7 +426,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 setListSelect.appendChild(option);
             }
         }
-        setListSelect.value = currentSetList;
+        if (listToSelect) {
+            setListSelect.value = listToSelect;
+        } else {
+            setListSelect.value = currentSetList;
+        }
     }
 
     async function updateUI() {
@@ -446,9 +450,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         await saveSetList(name, []);
+        setLists[name] = [];
         setListNameInput.value = '';
-        await populateSetListSelects();
-        setListSelect.value = name;
+        await populateSetListSelects(setLists, name);
         await renderSelectedSetListFiles();
         alert('Set list created!');
     });
