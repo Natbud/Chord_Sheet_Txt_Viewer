@@ -159,6 +159,8 @@ ul.nested.active {
     justify-content: flex-end;
     margin-bottom: 10px;
     flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 button {
@@ -343,6 +345,42 @@ textarea {
     box-sizing: border-box;
 }
 
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+
+    #file-browser {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #ccc;
+        padding-right: 0;
+        height: 40vh;
+    }
+
+    #resizer {
+        display: none;
+    }
+
+    .editor-container {
+        padding-left: 0;
+        height: 60vh;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    h1 {
+        margin-bottom: 10px;
+    }
+
+    .modal-content {
+        margin: 10% auto;
+        width: 90%;
+    }
+}
+
 #add-to-set-list-container {
     padding: 10px;
     border-bottom: 1px solid #ccc;
@@ -361,11 +399,14 @@ textarea {
     display: flex;
     justify-content: space-between;
     margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 #set-list-actions button, #tag-actions button {
-    width: 32%;
+    flex: 1 1 auto;
     padding: 8px;
+    min-width: 100px;
 }
 
 #set-list-files li input[type="checkbox"] {
@@ -402,11 +443,14 @@ textarea {
     display: flex;
     justify-content: space-between;
     margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 #file-actions button {
-    width: 32%;
+    flex: 1 1 auto;
     padding: 8px;
+    min-width: 100px;
 }
 
 #tags-content input,
