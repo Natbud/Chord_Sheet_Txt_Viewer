@@ -323,6 +323,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const exportSongBtn = document.getElementById('export-song-btn');
+    exportSongBtn.addEventListener('click', () => {
+        if (!currentFileId) {
+            alert('No song is currently loaded to export.');
+            return;
+        }
+
+        const currentFile = allFiles.find(f => f.id === currentFileId);
+        if (!currentFile) {
+            console.error('Could not find file info for currentFileId:', currentFileId);
+            alert('An error occurred. Could not find file name for the current song.');
+            return;
+        }
+        const fileName = currentFile.name;
+        const content = editor.value;
+
+        try {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        } catch (error) {
+            console.error('Error exporting song:', error);
+            alert('An error occurred while trying to export the song.');
+        }
+    });
+
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
@@ -646,6 +677,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectNoneBtn = document.getElementById('select-none-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
     const manageTagsBtn = document.getElementById('manage-tags-btn');
+    const exportSelectedBtn = document.getElementById('export-selected-btn');
+
+    exportSelectedBtn.addEventListener('click', async () => {
+        const selectedFilesCheckboxes = fileListContainer.querySelectorAll('li input[type="checkbox"]:checked');
+        if (selectedFilesCheckboxes.length === 0) {
+            alert('Please select at least one file to export.');
+            return;
+        }
+
+        for (const checkbox of selectedFilesCheckboxes) {
+            const fileId = checkbox.dataset.fileId;
+            const fileName = checkbox.dataset.fileName;
+            try {
+                const content = await getFileContent(fileId);
+                const blob = new Blob([content], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (error) {
+                console.error(`Error exporting file ${fileName}:`, error);
+                alert(`Could not export ${fileName}. See console for details.`);
+            }
+        }
+    });
 
     manageTagsBtn.addEventListener('click', () => {
         const selectedFilesCheckboxes = fileListContainer.querySelectorAll('li input[type="checkbox"]:checked');
