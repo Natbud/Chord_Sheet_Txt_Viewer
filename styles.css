@@ -92,10 +92,9 @@ h1 {
     padding-left: 5px;
 }
 
-#file-list li, #set-list-files li {
+#file-list li, #set-list-files li, #tags-list li {
     padding: 5px;
     cursor: pointer;
-    white-space: nowrap;
     font-size: 0.9em;
     display: flex;
     align-items: center;
@@ -422,12 +421,27 @@ textarea {
     border-bottom: 1px solid #eee;
 }
 
+#tags-list li span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-grow: 1;
+    padding-right: 5px;
+}
+
 .delete-tag-btn {
     background: none;
     border: none;
     color: #ff0000;
     cursor: pointer;
     font-size: 1.2em;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #assign-tags-modal .modal-content {

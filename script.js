@@ -607,9 +607,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tagsListContainer.innerHTML = '';
         allTags.forEach(tag => {
             const li = document.createElement('li');
-            li.textContent = tag;
+            const tagNameSpan = document.createElement('span');
+            tagNameSpan.textContent = tag;
+            li.appendChild(tagNameSpan);
             const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'x';
+            deleteBtn.textContent = '🗑️';
             deleteBtn.classList.add('delete-tag-btn');
             deleteBtn.addEventListener('click', async () => {
                 const files = await getFiles();
