@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Load settings from localStorage
-    const darkMode = localStorage.getItem('darkMode') === 'true';
+    const darkMode = localStorage.getItem('darkMode') !== 'false';
     const editorFont = localStorage.getItem('editorFont');
     const editorBackgroundColor = localStorage.getItem('editorBackgroundColor');
     const editorTextColor = localStorage.getItem('editorTextColor');
@@ -312,7 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             files.forEach((file, index) => {
                 const li = document.createElement('li');
-                li.textContent = truncateFilename(file.name);
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.textContent = truncateFilename(file.name);
+                li.appendChild(fileNameSpan);
                 if (truncateFilename(file.name) !== file.name) {
                     li.title = file.name;
                 }
@@ -323,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await loadFile(file.id);
                 });
                 const removeBtn = document.createElement('button');
-                removeBtn.textContent = 'x';
+                removeBtn.textContent = '🗑️';
                 removeBtn.classList.add('remove-from-set-list-btn');
                 removeBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
